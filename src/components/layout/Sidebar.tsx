@@ -22,17 +22,17 @@ export const Sidebar = ({ isCollapsed }: SidebarProps) => {
     <aside
       className={cn(
         "fixed left-0 top-14 z-30 h-[calc(100vh-3.5rem)] border-r bg-background transition-all duration-200",
-        isCollapsed ? "sidebar-collapsed" : "sidebar-expanded"
+        isCollapsed ? "w-16" : "w-64"
       )}
     >
       <div className="space-y-4 py-4">
         <div className="px-3 py-2">
           <div className="space-y-1">
             <Link
-              to="/"
+              to="/dashboard"
               className={cn(
                 "nav-item",
-                isActive("/") && "nav-item-active"
+                isActive("/dashboard") && "nav-item-active"
               )}
             >
               <BarChart3 className="h-4 w-4" />
@@ -80,10 +80,10 @@ export const Sidebar = ({ isCollapsed }: SidebarProps) => {
               </span>
             </Link>
             <Link
-              to="/knowledge-base"
+              to="/knowledge"
               className={cn(
                 "nav-item",
-                isActive("/knowledge-base") && "nav-item-active"
+                isActive("/knowledge") && "nav-item-active"
               )}
             >
               <BookOpen className="h-4 w-4" />
