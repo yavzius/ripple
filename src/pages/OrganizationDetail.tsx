@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building, Mail, Phone, Plus, User } from "lucide-react";
+import { Building, Mail, MessageSquare, Phone, Plus, User } from "lucide-react";
 import { useParams } from "react-router-dom";
 
 const contacts = [
@@ -26,6 +26,33 @@ const contacts = [
     role: "CTO",
     email: "jane@acme.com",
     phone: "+1 234 567 891",
+  },
+];
+
+const conversations = [
+  {
+    id: 1,
+    contactName: "John Doe",
+    subject: "Project Update Meeting",
+    lastMessage: "Let's schedule a follow-up next week",
+    date: "2024-02-20",
+    status: "Open",
+  },
+  {
+    id: 2,
+    contactName: "Jane Smith",
+    subject: "Technical Requirements",
+    lastMessage: "I've reviewed the documentation",
+    date: "2024-02-19",
+    status: "Closed",
+  },
+  {
+    id: 3,
+    contactName: "John Doe",
+    subject: "Contract Review",
+    lastMessage: "The legal team has approved",
+    date: "2024-02-18",
+    status: "Open",
   },
 ];
 
@@ -117,6 +144,50 @@ const OrganizationDetail = () => {
             </CardContent>
           </Card>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              Conversation History
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Subject</TableHead>
+                  <TableHead>Last Message</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {conversations.map((conversation) => (
+                  <TableRow key={conversation.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        {conversation.contactName}
+                      </div>
+                    </TableCell>
+                    <TableCell>{conversation.subject}</TableCell>
+                    <TableCell>{conversation.lastMessage}</TableCell>
+                    <TableCell>{conversation.date}</TableCell>
+                    <TableCell>
+                      <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                        conversation.status === 'Open' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {conversation.status}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );
