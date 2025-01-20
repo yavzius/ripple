@@ -56,7 +56,11 @@ function App() {
 
           if (error) {
             console.error('Error fetching default workspace:', error);
-            toast.error('Error loading workspace');
+            toast({
+              variant: "destructive",
+              title: "Error",
+              description: "Error loading workspace"
+            });
           } else if (workspaces?.workspaces?.slug) {
             setDefaultWorkspace(workspaces.workspaces.slug);
           }
@@ -83,7 +87,11 @@ function App() {
 
           if (error) {
             console.error('Error fetching default workspace:', error);
-            toast.error('Error loading workspace');
+            toast({
+              variant: "destructive",
+              title: "Error",
+              description: "Error loading workspace"
+            });
           } else if (workspaces?.workspaces?.slug) {
             setDefaultWorkspace(workspaces.workspaces.slug);
           }
