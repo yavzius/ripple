@@ -13,8 +13,8 @@ import { Link, useParams } from "react-router-dom";
 import MDEditor from "@uiw/react-md-editor";
 import { useToast } from "@/components/ui/use-toast";
 
-// Mock document data
-const document = {
+// Mock document data - renamed to documentData to avoid shadowing
+const documentData = {
   id: 1,
   title: "Company Overview",
   content:
@@ -28,7 +28,7 @@ const document = {
 const DocumentDetail = () => {
   const { id } = useParams();
   const [isEditing, setIsEditing] = useState(false);
-  const [content, setContent] = useState(document.content);
+  const [content, setContent] = useState(documentData.content);
   const { toast } = useToast();
 
   const handleSave = () => {
@@ -70,7 +70,7 @@ const DocumentDetail = () => {
           </Link>
           <div className="flex-1">
             <h1 className="text-3xl font-bold tracking-tight">
-              {document.title}
+              {documentData.title}
             </h1>
             <p className="text-muted-foreground">Document ID: {id}</p>
           </div>
@@ -84,7 +84,7 @@ const DocumentDetail = () => {
             />
             <Button
               variant="outline"
-              onClick={() => document.getElementById("file-upload")?.click()}
+              onClick={() => window.document.getElementById("file-upload")?.click()}
             >
               <Upload className="mr-2 h-4 w-4" />
               Upload
@@ -144,19 +144,19 @@ const DocumentDetail = () => {
                   <dt className="text-sm font-medium text-muted-foreground">
                     Category
                   </dt>
-                  <dd>{document.category}</dd>
+                  <dd>{documentData.category}</dd>
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-muted-foreground">
                     Last Updated
                   </dt>
-                  <dd>{document.lastUpdated}</dd>
+                  <dd>{documentData.lastUpdated}</dd>
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-muted-foreground">
                     Author
                   </dt>
-                  <dd>{document.author}</dd>
+                  <dd>{documentData.author}</dd>
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-muted-foreground">
@@ -165,12 +165,12 @@ const DocumentDetail = () => {
                   <dd>
                     <div
                       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                        document.type === "AI Generated"
+                        documentData.type === "AI Generated"
                           ? "bg-purple-100 text-purple-800"
                           : "bg-blue-100 text-blue-800"
                       }`}
                     >
-                      {document.type}
+                      {documentData.type}
                     </div>
                   </dd>
                 </div>
