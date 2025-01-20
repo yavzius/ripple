@@ -20,7 +20,10 @@ export const Sidebar = ({ isCollapsed }: SidebarProps) => {
   const isActive = (path: string) => location.pathname === path;
 
   // Helper function to construct workspace-scoped URLs
-  const getWorkspaceUrl = (path: string) => `/${workspaceSlug}${path}`;
+  const getWorkspaceUrl = (path: string) => {
+    if (!workspaceSlug) return path;
+    return `/${workspaceSlug}${path}`;
+  };
 
   return (
     <aside
