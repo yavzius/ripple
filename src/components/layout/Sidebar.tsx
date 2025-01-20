@@ -35,11 +35,11 @@ export const Sidebar = ({ isCollapsed }: SidebarProps) => {
                 isActive("/dashboard") && "nav-item-active"
               )}
             >
-              <BarChart3 className="h-4 w-4" />
+              <BarChart3 className="h-4 w-4 shrink-0" />
               <span
                 className={cn(
-                  "transition-opacity duration-200",
-                  isCollapsed && "opacity-0"
+                  "transition-all duration-200",
+                  isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
                 )}
               >
                 Analytics
@@ -52,11 +52,11 @@ export const Sidebar = ({ isCollapsed }: SidebarProps) => {
                 isActive("/tickets") && "nav-item-active"
               )}
             >
-              <TicketCheck className="h-4 w-4" />
+              <TicketCheck className="h-4 w-4 shrink-0" />
               <span
                 className={cn(
-                  "transition-opacity duration-200",
-                  isCollapsed && "opacity-0"
+                  "transition-all duration-200",
+                  isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
                 )}
               >
                 Tickets
@@ -69,11 +69,11 @@ export const Sidebar = ({ isCollapsed }: SidebarProps) => {
                 isActive("/training") && "nav-item-active"
               )}
             >
-              <GraduationCap className="h-4 w-4" />
+              <GraduationCap className="h-4 w-4 shrink-0" />
               <span
                 className={cn(
-                  "transition-opacity duration-200",
-                  isCollapsed && "opacity-0"
+                  "transition-all duration-200",
+                  isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
                 )}
               >
                 Training
@@ -86,11 +86,11 @@ export const Sidebar = ({ isCollapsed }: SidebarProps) => {
                 isActive("/knowledge") && "nav-item-active"
               )}
             >
-              <BookOpen className="h-4 w-4" />
+              <BookOpen className="h-4 w-4 shrink-0" />
               <span
                 className={cn(
-                  "transition-opacity duration-200",
-                  isCollapsed && "opacity-0"
+                  "transition-all duration-200",
+                  isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
                 )}
               >
                 Knowledge Base
@@ -103,11 +103,11 @@ export const Sidebar = ({ isCollapsed }: SidebarProps) => {
                 isActive("/organizations") && "nav-item-active"
               )}
             >
-              <Building2 className="h-4 w-4" />
+              <Building2 className="h-4 w-4 shrink-0" />
               <span
                 className={cn(
-                  "transition-opacity duration-200",
-                  isCollapsed && "opacity-0"
+                  "transition-all duration-200",
+                  isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
                 )}
               >
                 Organizations
@@ -120,11 +120,11 @@ export const Sidebar = ({ isCollapsed }: SidebarProps) => {
                 isActive("/notifications") && "nav-item-active"
               )}
             >
-              <Bell className="h-4 w-4" />
+              <Bell className="h-4 w-4 shrink-0" />
               <span
                 className={cn(
-                  "transition-opacity duration-200",
-                  isCollapsed && "opacity-0"
+                  "transition-all duration-200",
+                  isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
                 )}
               >
                 Notifications
