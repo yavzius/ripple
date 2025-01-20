@@ -7,10 +7,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Edit, File, Save, Trash } from "lucide-react";
+import { ArrowLeft, Edit, File, Save, Trash, Upload } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import MDEditor from "@uiw/react-md-editor";
+import { useToast } from "@/components/ui/use-toast";
 
 // Mock document data
 const document = {
@@ -28,10 +29,34 @@ const DocumentDetail = () => {
   const { id } = useParams();
   const [isEditing, setIsEditing] = useState(false);
   const [content, setContent] = useState(document.content);
+  const { toast } = useToast();
 
   const handleSave = () => {
     // Here you would typically save the changes to your backend
     setIsEditing(false);
+    toast({
+      title: "Changes saved",
+      description: "Your document has been updated successfully.",
+    });
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const text = e.target?.result;
+        if (typeof text === "string") {
+          setContent(text);
+          setIsEditing(true);
+          toast({
+            title: "Document uploaded",
+            description: "The document content has been loaded into the editor.",
+          });
+        }
+      };
+      reader.readAsText(file);
+    }
   };
 
   return (
@@ -50,6 +75,20 @@ const DocumentDetail = () => {
             <p className="text-muted-foreground">Document ID: {id}</p>
           </div>
           <div className="flex gap-2">
+            <input
+              type="file"
+              id="file-upload"
+              className="hidden"
+              accept=".md,.txt"
+              onChange={handleFileUpload}
+            />
+            <Button
+              variant="outline"
+              onClick={() => document.getElementById("file-upload")?.click()}
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              Upload
+            </Button>
             {isEditing ? (
               <Button onClick={handleSave}>
                 <Save className="mr-2 h-4 w-4" />
@@ -78,14 +117,17 @@ const DocumentDetail = () => {
             </CardHeader>
             <CardContent>
               {isEditing ? (
-                <Textarea
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  className="min-h-[400px]"
-                />
+                <div data-color-mode="light">
+                  <MDEditor
+                    value={content}
+                    onChange={(value) => setContent(value || "")}
+                    preview="edit"
+                    height={400}
+                  />
+                </div>
               ) : (
-                <div className="prose max-w-none">
-                  <p>{content}</p>
+                <div data-color-mode="light">
+                  <MDEditor.Markdown source={content} />
                 </div>
               )}
             </CardContent>
