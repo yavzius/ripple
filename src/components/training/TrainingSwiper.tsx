@@ -6,9 +6,12 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Card, CardContent } from "@/components/ui/card";
-import { ThumbsDown, ThumbsUp } from "lucide-react";
+import { ThumbsDown, ThumbsUp, Save, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 // Mock training cards data
 const mockTrainingCards = [
@@ -36,6 +39,8 @@ export const TrainingSwiper = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const { toast } = useToast();
   const [api, setApi] = useState<any>();
+  const [showNotes, setShowNotes] = useState(false);
+  const [notes, setNotes] = useState("");
 
   useEffect(() => {
     if (!api) return;
@@ -62,8 +67,52 @@ export const TrainingSwiper = () => {
     }
   };
 
+  const handleSave = () => {
+    toast({
+      title: "Progress Saved",
+      description: "You can continue this training session later.",
+    });
+  };
+
+  const toggleNotes = () => {
+    setShowNotes(!showNotes);
+  };
+
   return (
     <div className="relative">
+      <div className="flex justify-center mb-4 space-x-4">
+        <Button onClick={handleSave} variant="outline">
+          <Save className="mr-2 h-4 w-4" />
+          Save Progress
+        </Button>
+        <Button onClick={toggleNotes} variant="outline">
+          <Plus className="mr-2 h-4 w-4" />
+          Add Notes
+        </Button>
+      </div>
+
+      {showNotes && (
+        <div className="mb-4 animate-fadeIn">
+          <Textarea
+            placeholder="Add your training notes here..."
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            className="min-h-[100px]"
+          />
+        </div>
+      )}
+
+      <div className="flex items-center justify-between mb-4 px-16 text-sm text-muted-foreground">
+        <div className="flex items-center">
+          <ThumbsDown className="mr-2 h-4 w-4 text-destructive" />
+          False
+        </div>
+        <div className="flex items-center">
+          True
+          <ThumbsUp className="ml-2 h-4 w-4 text-primary" />
+        </div>
+      </div>
+
       <Carousel setApi={setApi} className="w-full max-w-md mx-auto">
         <CarouselContent>
           {mockTrainingCards.map((card) => (
