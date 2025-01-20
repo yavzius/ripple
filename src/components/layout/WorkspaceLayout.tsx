@@ -75,11 +75,11 @@ const WorkspaceLayout = () => {
 
         console.log("Workspace data found:", workspaceData);
 
-        // Verify user's membership
+        // Verify user's membership using workspace slug
         const { data: membership, error: membershipError } = await supabase
           .from("workspace_members")
           .select("*")
-          .eq("workspace_id", workspaceData.id)
+          .eq("workspace_id", workspaceData.id)  // We still need the ID for the membership check
           .eq("user_id", session.user.id)
           .maybeSingle();
 
