@@ -15,12 +15,31 @@ const Auth = () => {
       if (event === "SIGNED_IN" && session) {
         navigate("/workspaces");
       }
+      if (event === "USER_UPDATED") {
+        const { error } = await supabase.auth.getSession();
+        if (error) {
+          setErrorMessage(getErrorMessage(error));
+        }
+      }
+      if (event === "SIGNED_OUT") {
+        setErrorMessage("");
+      }
     });
 
     return () => subscription.unsubscribe();
   }, [navigate]);
 
   const getErrorMessage = (error: AuthError) => {
+    // Check if the error response contains a JSON body with specific error details
+    try {
+      const errorBody = JSON.parse(error.message);
+      if (errorBody.code === "weak_password") {
+        return "Password should be at least 6 characters long.";
+      }
+    } catch {
+      // If error.message is not JSON, proceed with normal error handling
+    }
+
     switch (error.message) {
       case "Invalid login credentials":
         return "Invalid email or password. Please check your credentials and try again.";
