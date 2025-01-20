@@ -35,8 +35,9 @@ const WorkspaceLayout = () => {
   useEffect(() => {
     const fetchWorkspaceAndValidate = async () => {
       try {
-        const { data: session } = await supabase.auth.getSession();
-        if (!session.session) {
+        // Check authentication
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
           navigate("/auth");
           return;
         }
@@ -47,14 +48,20 @@ const WorkspaceLayout = () => {
         }
 
         // Fetch workspace details
-        const { data: workspace, error: workspaceError } = await supabase
+        const { data: workspaceData, error: workspaceError } = await supabase
           .from("workspaces")
           .select("*")
           .eq("slug", workspaceSlug)
-          .single();
+          .maybeSingle();
 
-        if (workspaceError || !workspace) {
+        if (workspaceError) {
           console.error("Workspace error:", workspaceError);
+          toast.error("Error loading workspace");
+          navigate("/workspaces");
+          return;
+        }
+
+        if (!workspaceData) {
           toast.error("Workspace not found");
           navigate("/workspaces");
           return;
@@ -64,18 +71,24 @@ const WorkspaceLayout = () => {
         const { data: membership, error: membershipError } = await supabase
           .from("workspace_members")
           .select("*")
-          .eq("workspace_id", workspace.id)
-          .eq("user_id", session.session.user.id)
-          .single();
+          .eq("workspace_id", workspaceData.id)
+          .eq("user_id", session.user.id)
+          .maybeSingle();
 
-        if (membershipError || !membership) {
+        if (membershipError) {
           console.error("Membership error:", membershipError);
+          toast.error("Error checking workspace access");
+          navigate("/workspaces");
+          return;
+        }
+
+        if (!membership) {
           toast.error("You don't have access to this workspace");
           navigate("/workspaces");
           return;
         }
 
-        setWorkspace(workspace);
+        setWorkspace(workspaceData);
       } catch (error) {
         console.error("Error in workspace validation:", error);
         toast.error("Failed to load workspace");

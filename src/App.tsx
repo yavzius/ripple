@@ -46,15 +46,17 @@ function App() {
 
       if (isAuthed && session) {
         try {
-          const { data: workspaces } = await supabase
+          const { data: workspaces, error } = await supabase
             .from('workspace_members')
             .select('workspace_id, workspaces:workspaces(slug)')
             .eq('user_id', session.user.id)
             .order('created_at', { ascending: true })
-            .limit(1)
-            .single();
+            .maybeSingle();
 
-          if (workspaces?.workspaces?.slug) {
+          if (error) {
+            console.error('Error fetching default workspace:', error);
+            toast.error('Error loading workspace');
+          } else if (workspaces?.workspaces?.slug) {
             setDefaultWorkspace(workspaces.workspaces.slug);
           }
         } catch (error) {
@@ -71,15 +73,17 @@ function App() {
 
       if (isAuthed && session) {
         try {
-          const { data: workspaces } = await supabase
+          const { data: workspaces, error } = await supabase
             .from('workspace_members')
             .select('workspace_id, workspaces:workspaces(slug)')
             .eq('user_id', session.user.id)
             .order('created_at', { ascending: true })
-            .limit(1)
-            .single();
+            .maybeSingle();
 
-          if (workspaces?.workspaces?.slug) {
+          if (error) {
+            console.error('Error fetching default workspace:', error);
+            toast.error('Error loading workspace');
+          } else if (workspaces?.workspaces?.slug) {
             setDefaultWorkspace(workspaces.workspaces.slug);
           }
         } catch (error) {
