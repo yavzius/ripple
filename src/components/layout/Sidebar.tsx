@@ -1,4 +1,4 @@
-import { Home, Inbox, Book, BarChart2, Users } from "lucide-react";
+import { Home, Inbox, Book, BarChart2, Users, Building } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useLocation, Link } from "react-router-dom";
@@ -7,6 +7,7 @@ const navigation = [
   { name: "Dashboard", href: "/", icon: Home },
   { name: "Tickets", href: "/tickets", icon: Inbox },
   { name: "Knowledge Base", href: "/knowledge", icon: Book },
+  { name: "CRM", href: "/organizations", icon: Building },
   { name: "Training", href: "/training", icon: Users },
   { name: "Analytics", href: "/analytics", icon: BarChart2 },
 ];

@@ -5,6 +5,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import TicketsPage from "./pages/Tickets";
 import TicketDetail from "./pages/TicketDetail";
+import Organizations from "./pages/Organizations";
+import OrganizationDetail from "./pages/OrganizationDetail";
 
 const queryClient = new QueryClient();
 
@@ -18,6 +20,8 @@ function App() {
             <Route path="/dashboard" element={<Index />} />
             <Route path="/tickets" element={<TicketsPage />} />
             <Route path="/tickets/:id" element={<TicketDetail />} />
+            <Route path="/organizations" element={<Organizations />} />
+            <Route path="/organizations/:id" element={<OrganizationDetail />} />
           </Routes>
         </BrowserRouter>
         <Sonner />
