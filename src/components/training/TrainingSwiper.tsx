@@ -6,11 +6,10 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Card, CardContent } from "@/components/ui/card";
-import { ThumbsDown, ThumbsUp, Save, Plus } from "lucide-react";
+import { ThumbsDown, ThumbsUp, Clock, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 // Mock training cards data
@@ -38,27 +37,35 @@ const mockTrainingCards = [
 export const TrainingSwiper = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const { toast } = useToast();
-  const [api, setApi] = useState<any>();
   const [showNotes, setShowNotes] = useState(false);
   const [notes, setNotes] = useState("");
 
-  useEffect(() => {
-    if (!api) return;
-
-    api.on("select", () => {
-      setCurrentIndex(api.selectedScrollSnap());
-    });
-  }, [api]);
-
-  const handleSwipe = (approved: boolean) => {
+  const handleAction = (action: 'true' | 'false' | 'later') => {
     const card = mockTrainingCards[currentIndex];
-    toast({
-      title: approved ? "Response Approved" : "Response Needs Improvement",
-      description: `Feedback recorded for card #${card.id}`,
-    });
+    
+    switch(action) {
+      case 'true':
+        toast({
+          title: "Response Approved",
+          description: `Feedback recorded for card #${card.id}`,
+        });
+        break;
+      case 'false':
+        toast({
+          title: "Response Needs Improvement",
+          description: `Feedback recorded for card #${card.id}`,
+        });
+        break;
+      case 'later':
+        toast({
+          title: "Marked for Later",
+          description: "You can review this card in your saved items.",
+        });
+        break;
+    }
 
     if (currentIndex < mockTrainingCards.length - 1) {
-      api?.scrollNext();
+      setCurrentIndex(currentIndex + 1);
     } else {
       toast({
         title: "Training Session Complete",
@@ -67,23 +74,18 @@ export const TrainingSwiper = () => {
     }
   };
 
-  const handleSave = () => {
-    toast({
-      title: "Progress Saved",
-      description: "You can continue this training session later.",
-    });
-  };
-
   const toggleNotes = () => {
     setShowNotes(!showNotes);
   };
 
+  const currentCard = mockTrainingCards[currentIndex];
+
   return (
     <div className="relative">
       <div className="flex justify-center mb-4 space-x-4">
-        <Button onClick={handleSave} variant="outline">
-          <Save className="mr-2 h-4 w-4" />
-          Save Progress
+        <Button onClick={() => handleAction('later')} variant="outline">
+          <Clock className="mr-2 h-4 w-4" />
+          Later
         </Button>
         <Button onClick={toggleNotes} variant="outline">
           <Plus className="mr-2 h-4 w-4" />
@@ -113,41 +115,40 @@ export const TrainingSwiper = () => {
         </div>
       </div>
 
-      <Carousel setApi={setApi} className="w-full max-w-md mx-auto">
-        <CarouselContent>
-          {mockTrainingCards.map((card) => (
-            <CarouselItem key={card.id}>
-              <Card className="border-2">
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="font-semibold text-lg">{card.question}</h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {card.context}
-                      </p>
-                    </div>
-                    <div className="bg-muted p-4 rounded-lg">
-                      <p className="text-sm">{card.currentResponse}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </CarouselItem>
-          ))}
-        </CarouselContent>
-        <CarouselPrevious
-          onClick={() => handleSwipe(false)}
-          className="h-12 w-12 -left-16"
-        >
-          <ThumbsDown className="h-6 w-6 text-destructive" />
-        </CarouselPrevious>
-        <CarouselNext
-          onClick={() => handleSwipe(true)}
-          className="h-12 w-12 -right-16"
-        >
-          <ThumbsUp className="h-6 w-6 text-primary" />
-        </CarouselNext>
-      </Carousel>
+      <div className="w-full max-w-md mx-auto">
+        <Card className="border-2">
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-semibold text-lg">{currentCard.question}</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {currentCard.context}
+                </p>
+              </div>
+              <div className="bg-muted p-4 rounded-lg">
+                <p className="text-sm">{currentCard.currentResponse}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="flex justify-between mt-6">
+          <Button
+            onClick={() => handleAction('false')}
+            variant="outline"
+            className="w-24"
+          >
+            <ThumbsDown className="h-6 w-6 text-destructive" />
+          </Button>
+          <Button
+            onClick={() => handleAction('true')}
+            variant="outline"
+            className="w-24"
+          >
+            <ThumbsUp className="h-6 w-6 text-primary" />
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };
