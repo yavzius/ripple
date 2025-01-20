@@ -21,6 +21,12 @@ const WorkspaceLayout = () => {
   useEffect(() => {
     const fetchWorkspace = async () => {
       try {
+        const { data: session } = await supabase.auth.getSession();
+        if (!session.session) {
+          navigate("/auth");
+          return;
+        }
+
         const { data, error } = await supabase
           .from("workspaces")
           .select("*")
