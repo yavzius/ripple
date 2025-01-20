@@ -12,6 +12,7 @@ import DocumentDetail from "./pages/DocumentDetail";
 import Training from "./pages/Training";
 import TrainingCardDetail from "./pages/TrainingCardDetail";
 import TrainingSession from "./pages/TrainingSession";
+import Analytics from "./pages/Analytics";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ function App() {
             <Route path="/training" element={<Training />} />
             <Route path="/training/:id" element={<TrainingCardDetail />} />
             <Route path="/training/session" element={<TrainingSession />} />
+            <Route path="/analytics" element={<Analytics />} />
           </Routes>
         </BrowserRouter>
         <Sonner />
