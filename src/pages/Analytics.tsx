@@ -45,42 +45,52 @@ const Analytics = () => {
     tickets: {
       label: "Total Tickets",
       theme: {
-        light: "hsl(var(--primary))",
-        dark: "hsl(var(--primary))",
+        light: "#9b87f5",
+        dark: "#9b87f5",
       },
     },
     resolved: {
       label: "Resolved Tickets",
       theme: {
-        light: "hsl(var(--muted))",
-        dark: "hsl(var(--muted))",
+        light: "#D6BCFA",
+        dark: "#D6BCFA",
       },
     },
   };
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        <div>
-          <h2 className="text-3xl font-semibold tracking-tight">Analytics</h2>
-          <p className="text-muted-foreground">
-            Monitor your support metrics and performance.
-          </p>
+      <div className="space-y-8 animate-fadeIn">
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-3xl blur-3xl" />
+          <div className="relative">
+            <h2 className="text-3xl font-semibold tracking-tight bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+              Analytics
+            </h2>
+            <p className="text-muted-foreground mt-2">
+              Monitor your support metrics and performance.
+            </p>
+          </div>
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => (
-            <Card key={stat.name} className="p-6 card-hover">
+            <Card 
+              key={stat.name} 
+              className="p-6 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] bg-gradient-to-br from-white to-purple-50/50 border-purple-100"
+            >
               <div className="flex items-center gap-4">
-                <div className="rounded-lg bg-primary/10 p-2">
-                  <stat.icon className="h-6 w-6 text-primary" />
+                <div className="rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 p-2 text-white shadow-lg">
+                  <stat.icon className="h-6 w-6" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">
                     {stat.name}
                   </p>
                   <div className="flex items-baseline gap-2">
-                    <p className="text-2xl font-semibold">{stat.value}</p>
+                    <p className="text-2xl font-semibold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                      {stat.value}
+                    </p>
                     <span
                       className={`text-xs font-medium ${
                         stat.change.startsWith("+")
@@ -97,9 +107,11 @@ const Analytics = () => {
           ))}
         </div>
 
-        <Card className="p-6">
+        <Card className="p-6 bg-gradient-to-br from-white to-purple-50/50 border-purple-100">
           <div className="mb-4">
-            <h3 className="text-lg font-medium">Ticket Volume</h3>
+            <h3 className="text-lg font-medium bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+              Ticket Volume
+            </h3>
             <p className="text-sm text-muted-foreground">
               Monthly ticket volume and resolution rates
             </p>
@@ -107,14 +119,41 @@ const Analytics = () => {
           <div className="h-[400px]">
             <ChartContainer config={chartConfig}>
               <>
-                <BarChart data={mockData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="tickets" fill="var(--color-tickets)" />
-                  <Bar dataKey="resolved" fill="var(--color-resolved)" />
-                </BarChart>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={mockData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                    <XAxis 
+                      dataKey="month" 
+                      stroke="#64748B"
+                      fontSize={12}
+                      tickLine={false}
+                    />
+                    <YAxis 
+                      stroke="#64748B"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <Tooltip 
+                      contentStyle={{
+                        background: "white",
+                        border: "1px solid #E2E8F0",
+                        borderRadius: "8px",
+                        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                      }}
+                    />
+                    <Bar 
+                      dataKey="tickets" 
+                      fill="#9b87f5"
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar 
+                      dataKey="resolved" 
+                      fill="#D6BCFA"
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
                 <ChartLegend>
                   <ChartLegendContent />
                 </ChartLegend>
