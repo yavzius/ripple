@@ -7,6 +7,8 @@ import TicketsPage from "./pages/Tickets";
 import TicketDetail from "./pages/TicketDetail";
 import Organizations from "./pages/Organizations";
 import OrganizationDetail from "./pages/OrganizationDetail";
+import KnowledgeBase from "./pages/KnowledgeBase";
+import DocumentDetail from "./pages/DocumentDetail";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +24,8 @@ function App() {
             <Route path="/tickets/:id" element={<TicketDetail />} />
             <Route path="/organizations" element={<Organizations />} />
             <Route path="/organizations/:id" element={<OrganizationDetail />} />
+            <Route path="/knowledge" element={<KnowledgeBase />} />
+            <Route path="/knowledge/:id" element={<DocumentDetail />} />
           </Routes>
         </BrowserRouter>
         <Sonner />
