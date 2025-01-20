@@ -13,7 +13,7 @@ import Training from "./pages/Training";
 import TrainingCardDetail from "./pages/TrainingCardDetail";
 import TrainingSession from "./pages/TrainingSession";
 import Analytics from "./pages/Analytics";
-import Notifications from "./pages/Notifications";
+import Updates from "./pages/Updates";
 import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
@@ -36,7 +36,7 @@ function App() {
             <Route path="/training/:id" element={<TrainingCardDetail />} />
             <Route path="/training/session" element={<TrainingSession />} />
             <Route path="/analytics" element={<Analytics />} />
-            <Route path="/notifications" element={<Notifications />} />
+            <Route path="/updates" element={<Updates />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>
         </BrowserRouter>

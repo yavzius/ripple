@@ -114,10 +114,10 @@ export const Sidebar = ({ isCollapsed }: SidebarProps) => {
               </span>
             </Link>
             <Link
-              to="/notifications"
+              to="/updates"
               className={cn(
                 "nav-item",
-                isActive("/notifications") && "nav-item-active"
+                isActive("/updates") && "nav-item-active"
               )}
             >
               <Bell className="h-4 w-4 shrink-0" />
@@ -127,7 +127,7 @@ export const Sidebar = ({ isCollapsed }: SidebarProps) => {
                   isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
                 )}
               >
-                Notifications
+                Updates
               </span>
             </Link>
           </div>
