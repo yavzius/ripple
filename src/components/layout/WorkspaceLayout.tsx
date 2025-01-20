@@ -8,6 +8,8 @@ interface Workspace {
   id: string;
   name: string;
   slug: string;
+  created_at: string;
+  updated_at: string;
 }
 
 const WorkspaceLayout = () => {
