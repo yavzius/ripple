@@ -32,7 +32,7 @@ function App() {
       const isAuthed = !!session;
       setIsAuthenticated(isAuthed);
 
-      if (isAuthed) {
+      if (isAuthed && session) {
         // Fetch user's default workspace
         const { data: workspaces } = await supabase
           .from('workspace_members')
@@ -96,12 +96,13 @@ function App() {
                       <Navigate to="/workspaces" replace />
                   } 
                 />
-                <Route path="/auth" element={<Navigate to="/workspaces" replace />} />
+                <Route path="/auth" element={<Navigate to="/" replace />} />
                 <Route path="/workspaces" element={<Workspaces />} />
                 <Route path="/workspaces/:id" element={<WorkspaceDetail />} />
                 
                 {/* Workspace-specific routes */}
                 <Route path="/:workspaceSlug" element={<WorkspaceLayout />}>
+                  <Route index element={<Navigate to="dashboard" replace />} />
                   <Route path="dashboard" element={<Index />} />
                   <Route path="tickets" element={<TicketsPage />} />
                   <Route path="tickets/:id" element={<TicketDetail />} />

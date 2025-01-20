@@ -27,7 +27,12 @@ const WorkspaceLayout = () => {
           return;
         }
 
-        const { data, error } = await supabase
+        if (!workspaceSlug) {
+          navigate("/workspaces");
+          return;
+        }
+
+        const { data: workspace, error } = await supabase
           .from("workspaces")
           .select("*")
           .eq("slug", workspaceSlug)
@@ -35,13 +40,27 @@ const WorkspaceLayout = () => {
 
         if (error) throw error;
 
-        if (!data) {
+        if (!workspace) {
           toast.error("Workspace not found");
           navigate("/workspaces");
           return;
         }
 
-        setWorkspace(data);
+        // Verify user is a member of this workspace
+        const { data: membership, error: membershipError } = await supabase
+          .from("workspace_members")
+          .select("*")
+          .eq("workspace_id", workspace.id)
+          .eq("user_id", session.session.user.id)
+          .single();
+
+        if (membershipError || !membership) {
+          toast.error("You don't have access to this workspace");
+          navigate("/workspaces");
+          return;
+        }
+
+        setWorkspace(workspace);
       } catch (error) {
         console.error("Error fetching workspace:", error);
         toast.error("Failed to load workspace");
@@ -51,9 +70,7 @@ const WorkspaceLayout = () => {
       }
     };
 
-    if (workspaceSlug) {
-      fetchWorkspace();
-    }
+    fetchWorkspace();
   }, [workspaceSlug, navigate]);
 
   if (loading) {

@@ -17,12 +17,14 @@ export const Sidebar = ({ isCollapsed }: SidebarProps) => {
   const location = useLocation();
   const { workspaceSlug } = useParams();
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => {
+    const currentPath = location.pathname;
+    const workspacePath = workspaceSlug ? `/${workspaceSlug}${path}` : path;
+    return currentPath === workspacePath;
+  };
 
-  // Helper function to construct workspace-scoped URLs
   const getWorkspaceUrl = (path: string) => {
-    if (!workspaceSlug) return path;
-    return `/${workspaceSlug}${path}`;
+    return workspaceSlug ? `/${workspaceSlug}${path}` : path;
   };
 
   return (
@@ -39,7 +41,7 @@ export const Sidebar = ({ isCollapsed }: SidebarProps) => {
               to={getWorkspaceUrl("/dashboard")}
               className={cn(
                 "nav-item",
-                isActive(getWorkspaceUrl("/dashboard")) && "nav-item-active"
+                isActive("/dashboard") && "nav-item-active"
               )}
             >
               <BarChart3 className="h-4 w-4 shrink-0" />
@@ -56,7 +58,7 @@ export const Sidebar = ({ isCollapsed }: SidebarProps) => {
               to={getWorkspaceUrl("/tickets")}
               className={cn(
                 "nav-item",
-                isActive(getWorkspaceUrl("/tickets")) && "nav-item-active"
+                isActive("/tickets") && "nav-item-active"
               )}
             >
               <TicketCheck className="h-4 w-4 shrink-0" />
@@ -73,7 +75,7 @@ export const Sidebar = ({ isCollapsed }: SidebarProps) => {
               to={getWorkspaceUrl("/training")}
               className={cn(
                 "nav-item",
-                isActive(getWorkspaceUrl("/training")) && "nav-item-active"
+                isActive("/training") && "nav-item-active"
               )}
             >
               <GraduationCap className="h-4 w-4 shrink-0" />
@@ -90,7 +92,7 @@ export const Sidebar = ({ isCollapsed }: SidebarProps) => {
               to={getWorkspaceUrl("/knowledge")}
               className={cn(
                 "nav-item",
-                isActive(getWorkspaceUrl("/knowledge")) && "nav-item-active"
+                isActive("/knowledge") && "nav-item-active"
               )}
             >
               <BookOpen className="h-4 w-4 shrink-0" />
@@ -124,7 +126,7 @@ export const Sidebar = ({ isCollapsed }: SidebarProps) => {
               to={getWorkspaceUrl("/updates")}
               className={cn(
                 "nav-item",
-                isActive(getWorkspaceUrl("/updates")) && "nav-item-active"
+                isActive("/updates") && "nav-item-active"
               )}
             >
               <Bell className="h-4 w-4 shrink-0" />
