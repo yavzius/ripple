@@ -3,6 +3,7 @@ import { useParams, Outlet, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "./DashboardLayout";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Workspace {
   id: string;
@@ -12,6 +13,19 @@ interface Workspace {
   updated_at: string;
 }
 
+const LoadingState = () => (
+  <DashboardLayout>
+    <div className="p-8 space-y-4">
+      <Skeleton className="h-8 w-[250px]" />
+      <div className="grid gap-4">
+        <Skeleton className="h-4 w-[300px]" />
+        <Skeleton className="h-4 w-[250px]" />
+        <Skeleton className="h-4 w-[200px]" />
+      </div>
+    </div>
+  </DashboardLayout>
+);
+
 const WorkspaceLayout = () => {
   const { workspaceSlug } = useParams();
   const navigate = useNavigate();
@@ -19,7 +33,7 @@ const WorkspaceLayout = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchWorkspace = async () => {
+    const fetchWorkspaceAndValidate = async () => {
       try {
         const { data: session } = await supabase.auth.getSession();
         if (!session.session) {
@@ -32,21 +46,21 @@ const WorkspaceLayout = () => {
           return;
         }
 
-        const { data: workspace, error } = await supabase
+        // Fetch workspace details
+        const { data: workspace, error: workspaceError } = await supabase
           .from("workspaces")
           .select("*")
           .eq("slug", workspaceSlug)
           .single();
 
-        if (error) throw error;
-
-        if (!workspace) {
+        if (workspaceError || !workspace) {
+          console.error("Workspace error:", workspaceError);
           toast.error("Workspace not found");
           navigate("/workspaces");
           return;
         }
 
-        // Verify user is a member of this workspace
+        // Verify user's membership
         const { data: membership, error: membershipError } = await supabase
           .from("workspace_members")
           .select("*")
@@ -55,6 +69,7 @@ const WorkspaceLayout = () => {
           .single();
 
         if (membershipError || !membership) {
+          console.error("Membership error:", membershipError);
           toast.error("You don't have access to this workspace");
           navigate("/workspaces");
           return;
@@ -62,7 +77,7 @@ const WorkspaceLayout = () => {
 
         setWorkspace(workspace);
       } catch (error) {
-        console.error("Error fetching workspace:", error);
+        console.error("Error in workspace validation:", error);
         toast.error("Failed to load workspace");
         navigate("/workspaces");
       } finally {
@@ -70,11 +85,15 @@ const WorkspaceLayout = () => {
       }
     };
 
-    fetchWorkspace();
+    fetchWorkspaceAndValidate();
   }, [workspaceSlug, navigate]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <LoadingState />;
+  }
+
+  if (!workspace) {
+    return null;
   }
 
   return (

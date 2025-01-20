@@ -20,12 +20,24 @@ import Settings from "./pages/Settings";
 import CustomerPortal from "./pages/CustomerPortal";
 import WorkspaceLayout from "./components/layout/WorkspaceLayout";
 import Auth from "./pages/Auth";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const queryClient = new QueryClient();
+
+const InitialLoadingState = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="space-y-4 w-[300px]">
+      <Skeleton className="h-8 w-full" />
+      <Skeleton className="h-4 w-3/4" />
+      <Skeleton className="h-4 w-1/2" />
+    </div>
+  </div>
+);
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [defaultWorkspace, setDefaultWorkspace] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -33,19 +45,23 @@ function App() {
       setIsAuthenticated(isAuthed);
 
       if (isAuthed && session) {
-        // Fetch user's default workspace
-        const { data: workspaces } = await supabase
-          .from('workspace_members')
-          .select('workspace_id, workspaces:workspaces(slug)')
-          .eq('user_id', session.user.id)
-          .order('created_at', { ascending: true })
-          .limit(1)
-          .single();
+        try {
+          const { data: workspaces } = await supabase
+            .from('workspace_members')
+            .select('workspace_id, workspaces:workspaces(slug)')
+            .eq('user_id', session.user.id)
+            .order('created_at', { ascending: true })
+            .limit(1)
+            .single();
 
-        if (workspaces?.workspaces?.slug) {
-          setDefaultWorkspace(workspaces.workspaces.slug);
+          if (workspaces?.workspaces?.slug) {
+            setDefaultWorkspace(workspaces.workspaces.slug);
+          }
+        } catch (error) {
+          console.error('Error fetching default workspace:', error);
         }
       }
+      setIsLoading(false);
     });
 
     // Check initial session
@@ -54,26 +70,30 @@ function App() {
       setIsAuthenticated(isAuthed);
 
       if (isAuthed && session) {
-        const { data: workspaces } = await supabase
-          .from('workspace_members')
-          .select('workspace_id, workspaces:workspaces(slug)')
-          .eq('user_id', session.user.id)
-          .order('created_at', { ascending: true })
-          .limit(1)
-          .single();
+        try {
+          const { data: workspaces } = await supabase
+            .from('workspace_members')
+            .select('workspace_id, workspaces:workspaces(slug)')
+            .eq('user_id', session.user.id)
+            .order('created_at', { ascending: true })
+            .limit(1)
+            .single();
 
-        if (workspaces?.workspaces?.slug) {
-          setDefaultWorkspace(workspaces.workspaces.slug);
+          if (workspaces?.workspaces?.slug) {
+            setDefaultWorkspace(workspaces.workspaces.slug);
+          }
+        } catch (error) {
+          console.error('Error fetching default workspace:', error);
         }
       }
+      setIsLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // Show loading state while checking authentication
-  if (isAuthenticated === null) {
-    return <div>Loading...</div>;
+  if (isLoading) {
+    return <InitialLoadingState />;
   }
 
   return (
