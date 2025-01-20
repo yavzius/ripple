@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import Index from "./pages/Index";
 import TicketsPage from "./pages/Tickets";
 import TicketDetail from "./pages/TicketDetail";
@@ -49,18 +49,14 @@ function App() {
         try {
           const { data: workspaces, error } = await supabase
             .from('workspace_members')
-            .select('workspace_id, workspaces:workspaces(slug)')
+            .select('workspaces:workspaces(slug)')
             .eq('user_id', session.user.id)
             .order('created_at', { ascending: true })
             .maybeSingle();
 
           if (error) {
             console.error('Error fetching default workspace:', error);
-            toast({
-              variant: "destructive",
-              title: "Error",
-              description: "Error loading workspace"
-            });
+            toast("Error loading workspace");
           } else if (workspaces?.workspaces?.slug) {
             setDefaultWorkspace(workspaces.workspaces.slug);
           }
@@ -80,18 +76,14 @@ function App() {
         try {
           const { data: workspaces, error } = await supabase
             .from('workspace_members')
-            .select('workspace_id, workspaces:workspaces(slug)')
+            .select('workspaces:workspaces(slug)')
             .eq('user_id', session.user.id)
             .order('created_at', { ascending: true })
             .maybeSingle();
 
           if (error) {
             console.error('Error fetching default workspace:', error);
-            toast({
-              variant: "destructive",
-              title: "Error",
-              description: "Error loading workspace"
-            });
+            toast("Error loading workspace");
           } else if (workspaces?.workspaces?.slug) {
             setDefaultWorkspace(workspaces.workspaces.slug);
           }
