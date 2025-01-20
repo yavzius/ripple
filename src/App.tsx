@@ -9,6 +9,8 @@ import Organizations from "./pages/Organizations";
 import OrganizationDetail from "./pages/OrganizationDetail";
 import KnowledgeBase from "./pages/KnowledgeBase";
 import DocumentDetail from "./pages/DocumentDetail";
+import Training from "./pages/Training";
+import TrainingCardDetail from "./pages/TrainingCardDetail";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +28,8 @@ function App() {
             <Route path="/organizations/:id" element={<OrganizationDetail />} />
             <Route path="/knowledge" element={<KnowledgeBase />} />
             <Route path="/knowledge/:id" element={<DocumentDetail />} />
+            <Route path="/training" element={<Training />} />
+            <Route path="/training/:id" element={<TrainingCardDetail />} />
           </Routes>
         </BrowserRouter>
         <Sonner />
