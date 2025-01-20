@@ -6,7 +6,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuFooter,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Bell } from "lucide-react";
@@ -89,13 +88,13 @@ export const NotificationsDropdown = () => {
           </DropdownMenuItem>
         ))}
         <DropdownMenuSeparator />
-        <DropdownMenuFooter className="p-2">
+        <DropdownMenuItem className="cursor-pointer focus:bg-muted">
           <Link to="/notifications" className="w-full">
             <Button variant="outline" className="w-full">
               View all notifications
             </Button>
           </Link>
-        </DropdownMenuFooter>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
