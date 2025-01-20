@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Play } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { LearningCard } from "@/components/training/LearningCard";
@@ -55,12 +55,20 @@ const Training = () => {
               Review and improve AI responses through learning cards
             </p>
           </div>
-          <Link to="/training/new">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Create Learning Card
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link to="/training/session">
+              <Button variant="secondary">
+                <Play className="mr-2 h-4 w-4" />
+                Start Training Session
+              </Button>
+            </Link>
+            <Link to="/training/new">
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Learning Card
+              </Button>
+            </Link>
+          </div>
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
