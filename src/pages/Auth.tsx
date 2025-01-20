@@ -55,7 +55,6 @@ const Auth = () => {
             appearance={{ theme: ThemeSupa }}
             theme="light"
             providers={[]}
-            onError={(error) => setErrorMessage(getErrorMessage(error))}
           />
         </div>
       </div>
