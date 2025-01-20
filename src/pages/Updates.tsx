@@ -1,4 +1,3 @@
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -113,51 +112,49 @@ const Updates = () => {
   };
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6 p-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Platform Updates</h1>
-          <p className="text-muted-foreground">
-            Track all activities and updates across your platform
-          </p>
-        </div>
+    <div className="space-y-6 p-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Platform Updates</h1>
+        <p className="text-muted-foreground">
+          Track all activities and updates across your platform
+        </p>
+      </div>
 
-        {urgentUpdates.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-destructive">
-                <AlertCircle className="h-5 w-5" />
-                Needs Attention
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[300px] pr-4">
-                <div className="space-y-4">
-                  {urgentUpdates.map((update) => (
-                    <UpdateItem key={update.id} update={update} />
-                  ))}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        )}
-
+      {urgentUpdates.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>All Updates</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <AlertCircle className="h-5 w-5" />
+              Needs Attention
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <ScrollArea className="h-[600px] pr-4">
+            <ScrollArea className="h-[300px] pr-4">
               <div className="space-y-4">
-                {regularUpdates.map((update) => (
+                {urgentUpdates.map((update) => (
                   <UpdateItem key={update.id} update={update} />
                 ))}
               </div>
             </ScrollArea>
           </CardContent>
         </Card>
-      </div>
-    </DashboardLayout>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>All Updates</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ScrollArea className="h-[600px] pr-4">
+            <div className="space-y-4">
+              {regularUpdates.map((update) => (
+                <UpdateItem key={update.id} update={update} />
+              ))}
+            </div>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

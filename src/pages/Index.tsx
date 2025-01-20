@@ -1,18 +1,5 @@
 import { Card } from "@/components/ui/card";
 import { BarChart2, Users, MessageSquare, Brain } from "lucide-react";
-import { useOutletContext } from "react-router-dom";
-
-interface Workspace {
-  id: string;
-  name: string;
-  slug: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface WorkspaceContextType {
-  workspace: Workspace;
-}
 
 const stats = [
   {
@@ -42,12 +29,10 @@ const stats = [
 ];
 
 const Index = () => {
-  const { workspace } = useOutletContext<WorkspaceContextType>();
-
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="section-title">Welcome to {workspace.name}</h2>
+        <h2 className="section-title">Dashboard</h2>
         <p className="text-sm text-muted-foreground">
           Here's what's happening in your AI support platform today.
         </p>

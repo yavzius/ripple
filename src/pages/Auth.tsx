@@ -13,26 +13,7 @@ const Auth = () => {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" && session) {
-        // Fetch user's workspaces
-        const { data: workspaces, error } = await supabase
-          .from('workspace_members')
-          .select('workspace_id, workspaces:workspaces(*)')
-          .eq('user_id', session.user.id)
-          .order('created_at', { ascending: true });
-
-        if (error) {
-          setErrorMessage("Failed to fetch workspaces");
-          return;
-        }
-
-        if (workspaces && workspaces.length > 0) {
-          // Get the first workspace's slug
-          const firstWorkspace = workspaces[0].workspaces;
-          navigate(`/${firstWorkspace.slug}/dashboard`);
-        } else {
-          // If no workspaces, go to workspaces page to create one
-          navigate("/workspaces");
-        }
+        navigate("/dashboard");
       }
       if (event === "USER_UPDATED") {
         const { error } = await supabase.auth.getSession();

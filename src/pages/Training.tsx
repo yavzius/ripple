@@ -1,4 +1,3 @@
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Search, Play } from "lucide-react";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { LearningCard } from "@/components/training/LearningCard";
 
 // Mock data for learning cards
@@ -37,6 +36,7 @@ const mockLearningCards = [
 ];
 
 const Training = () => {
+  const { workspaceSlug } = useParams();
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredCards = mockLearningCards.filter(
@@ -46,94 +46,92 @@ const Training = () => {
   );
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">AI Training</h1>
-            <p className="text-muted-foreground">
-              Review and improve AI responses through learning cards
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">AI Training</h1>
+          <p className="text-muted-foreground">
+            Review and improve AI responses through learning cards
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Link to={`/${workspaceSlug}/training/session`}>
+            <Button variant="secondary">
+              <Play className="mr-2 h-4 w-4" />
+              Start Training Session
+            </Button>
+          </Link>
+          <Link to={`/${workspaceSlug}/training/new`}>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Learning Card
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardTitle>Pending Cards</CardTitle>
+            <CardDescription>Cards requiring review</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">
+              {mockLearningCards.filter((card) => card.status === "pending").length}
             </p>
-          </div>
-          <div className="flex gap-2">
-            <Link to="/training/session">
-              <Button variant="secondary">
-                <Play className="mr-2 h-4 w-4" />
-                Start Training Session
-              </Button>
-            </Link>
-            <Link to="/training/new">
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Learning Card
-              </Button>
-            </Link>
-          </div>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-3">
-          <Card>
-            <CardHeader>
-              <CardTitle>Pending Cards</CardTitle>
-              <CardDescription>Cards requiring review</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">
-                {mockLearningCards.filter((card) => card.status === "pending").length}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Completed</CardTitle>
-              <CardDescription>Processed learning cards</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">
-                {mockLearningCards.filter((card) => card.status === "completed").length}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>High Priority</CardTitle>
-              <CardDescription>Urgent learning needs</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">
-                {mockLearningCards.filter((card) => card.priority === "high").length}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Learning Cards</CardTitle>
-            <div className="flex items-center gap-2">
-              <Search className="h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search learning cards..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="max-w-sm"
-              />
-            </div>
+            <CardTitle>Completed</CardTitle>
+            <CardDescription>Processed learning cards</CardDescription>
           </CardHeader>
           <CardContent>
-            <ScrollArea className="h-[600px] pr-4">
-              <div className="space-y-4">
-                {filteredCards.map((card) => (
-                  <LearningCard key={card.id} card={card} />
-                ))}
-              </div>
-            </ScrollArea>
+            <p className="text-3xl font-bold">
+              {mockLearningCards.filter((card) => card.status === "completed").length}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>High Priority</CardTitle>
+            <CardDescription>Urgent learning needs</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">
+              {mockLearningCards.filter((card) => card.priority === "high").length}
+            </p>
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Learning Cards</CardTitle>
+          <div className="flex items-center gap-2">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search learning cards..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="max-w-sm"
+            />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <ScrollArea className="h-[600px] pr-4">
+            <div className="space-y-4">
+              {filteredCards.map((card) => (
+                <LearningCard key={card.id} card={card} />
+              ))}
+            </div>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
