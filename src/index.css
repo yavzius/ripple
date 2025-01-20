@@ -11,10 +11,10 @@
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-    --primary: 262 83% 74%;
+    --primary: 153 60% 53%;
     --primary-foreground: 355.7 100% 97.3%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
+    --secondary: 240 5.9% 10%;
+    --secondary-foreground: 0 0% 98%;
     --muted: 240 4.8% 95.9%;
     --muted-foreground: 240 3.8% 46.1%;
     --accent: 240 4.8% 95.9%;
@@ -23,8 +23,8 @@
     --destructive-foreground: 0 0% 98%;
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 262 83% 74%;
-    --radius: 1rem;
+    --ring: 153 60% 53%;
+    --radius: 0.5rem;
   }
 }
 
@@ -38,42 +38,34 @@
   }
 }
 
-.card-hover {
-  @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+.supabase-card {
+  @apply rounded-lg border bg-card p-6 shadow-sm transition-all duration-200 hover:shadow-md;
 }
 
-.glass-panel {
-  @apply bg-white/80 backdrop-blur-sm border border-white/20 shadow-sm;
+.supabase-button {
+  @apply inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50;
 }
 
-.animate-in {
-  animation: fadeIn 0.5s ease-out forwards;
+.nav-item {
+  @apply flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground;
 }
 
-.slide-in {
-  animation: slideIn 0.3s ease-out forwards;
+.nav-item-active {
+  @apply bg-primary/10 text-primary hover:bg-primary/20;
 }
 
-.gradient-heading {
-  @apply bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent;
+.section-title {
+  @apply text-xl font-semibold tracking-tight;
 }
 
-.gradient-border {
-  @apply relative before:absolute before:inset-0 before:-z-10 before:rounded-lg before:p-0.5 before:bg-gradient-to-r before:from-primary/50 before:to-purple-400/50;
+.content-area {
+  @apply px-6 py-6 transition-all duration-200;
 }
 
-.hover-card {
-  @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1 rounded-xl border bg-card p-6 shadow-sm;
+.sidebar-expanded {
+  @apply w-64 transition-all duration-200;
 }
 
-.stats-card {
-  @apply hover-card bg-gradient-to-br from-white to-purple-50/50 border-purple-100;
-}
-
-.icon-container {
-  @apply rounded-xl bg-gradient-to-br from-primary to-purple-400 p-2 text-white shadow-lg;
-}
-
-.chart-container {
-  @apply rounded-xl border p-6 shadow-sm bg-gradient-to-br from-white to-purple-50/50 border-purple-100;
+.sidebar-collapsed {
+  @apply w-16 transition-all duration-200;
 }

@@ -1,22 +1,39 @@
-import { Bell, Settings } from "lucide-react";
+import { Bell, ChevronLeft, ChevronRight, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export const Header = () => {
+interface HeaderProps {
+  isCollapsed: boolean;
+  onToggleSidebar: () => void;
+}
+
+export const Header = ({ isCollapsed, onToggleSidebar }: HeaderProps) => {
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
+    <header className="sticky top-0 z-50 flex h-14 items-center border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="flex flex-1 items-center justify-between">
         <div className="flex items-center gap-4">
-          <h1 className="text-xl font-semibold gradient-heading">AI Support Platform</h1>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={onToggleSidebar}
+          >
+            {isCollapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
+          </Button>
+          <h1 className="text-lg font-semibold">AI Support Platform</h1>
         </div>
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" className="relative hover:bg-primary/10">
-            <Bell className="h-5 w-5" />
-            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-white animate-pulse">
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" className="relative h-8 w-8">
+            <Bell className="h-4 w-4" />
+            <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
               3
             </span>
           </Button>
-          <Button variant="ghost" size="icon" className="hover:bg-primary/10">
-            <Settings className="h-5 w-5" />
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Settings className="h-4 w-4" />
           </Button>
         </div>
       </div>

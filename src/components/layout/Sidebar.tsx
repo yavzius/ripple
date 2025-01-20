@@ -1,10 +1,9 @@
 import { Home, Inbox, Book, BarChart2, Users, Building } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { useLocation, Link } from "react-router-dom";
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: Home },
+  { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "Tickets", href: "/tickets", icon: Inbox },
   { name: "Knowledge Base", href: "/knowledge", icon: Book },
   { name: "CRM", href: "/organizations", icon: Building },
@@ -12,26 +11,40 @@ const navigation = [
   { name: "Analytics", href: "/analytics", icon: BarChart2 },
 ];
 
-export const Sidebar = () => {
+interface SidebarProps {
+  isCollapsed: boolean;
+}
+
+export const Sidebar = ({ isCollapsed }: SidebarProps) => {
   const location = useLocation();
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] w-64 flex-col border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <nav className="flex-1 space-y-1 p-4">
+    <div
+      className={cn(
+        "fixed left-0 top-14 h-[calc(100vh-3.5rem)] border-r bg-background transition-all duration-200",
+        isCollapsed ? "sidebar-collapsed" : "sidebar-expanded"
+      )}
+    >
+      <nav className="flex h-full flex-col gap-2 p-2">
         {navigation.map((item) => {
           const isActive = location.pathname === item.href;
           return (
-            <Link key={item.name} to={item.href}>
-              <Button
-                variant={isActive ? "secondary" : "ghost"}
-                className={cn(
-                  "w-full justify-start gap-3 transition-all duration-200",
-                  isActive ? "bg-primary/10 text-primary" : "hover:bg-primary/5"
-                )}
-              >
-                <item.icon className={cn("h-5 w-5", isActive && "text-primary")} />
-                {item.name}
-              </Button>
+            <Link
+              key={item.name}
+              to={item.href}
+              className={cn(
+                "nav-item group relative",
+                isActive && "nav-item-active"
+              )}
+              title={isCollapsed ? item.name : undefined}
+            >
+              <item.icon className="h-4 w-4 shrink-0" />
+              {!isCollapsed && <span>{item.name}</span>}
+              {isCollapsed && (
+                <div className="absolute left-full top-0 ml-2 hidden rounded-md bg-secondary px-2 py-1 text-xs text-secondary-foreground group-hover:block">
+                  {item.name}
+                </div>
+              )}
             </Link>
           );
         })}

@@ -32,20 +32,20 @@ const stats = [
 const Index = () => {
   return (
     <DashboardLayout>
-      <div className="space-y-8">
+      <div className="space-y-6">
         <div>
-          <h2 className="text-3xl font-semibold tracking-tight">Dashboard</h2>
-          <p className="text-muted-foreground">
+          <h2 className="section-title">Dashboard</h2>
+          <p className="text-sm text-muted-foreground">
             Welcome back. Here's what's happening today.
           </p>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => (
-            <Card key={stat.name} className="p-6 card-hover">
+            <Card key={stat.name} className="supabase-card">
               <div className="flex items-center gap-4">
                 <div className="rounded-lg bg-primary/10 p-2">
-                  <stat.icon className="h-6 w-6 text-primary" />
+                  <stat.icon className="h-4 w-4 text-primary" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">
@@ -56,7 +56,7 @@ const Index = () => {
                     <span
                       className={`text-xs font-medium ${
                         stat.change.startsWith("+")
-                          ? "text-green-600"
+                          ? "text-emerald-600"
                           : "text-red-600"
                       }`}
                     >
