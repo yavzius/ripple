@@ -15,6 +15,7 @@ import TrainingSession from "./pages/TrainingSession";
 import Analytics from "./pages/Analytics";
 import Updates from "./pages/Updates";
 import Settings from "./pages/Settings";
+import CustomerPortal from "./pages/CustomerPortal";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,7 @@ function App() {
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/updates" element={<Updates />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/customer-portal" element={<CustomerPortal />} />
           </Routes>
         </BrowserRouter>
         <Sonner />
