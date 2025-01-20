@@ -16,7 +16,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Ticket, TicketCheck, TicketX } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 // Mock data for initial display
 const tickets = [
@@ -47,8 +47,6 @@ const tickets = [
 ];
 
 const TicketsPage = () => {
-  const { workspaceSlug } = useParams();
-
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
@@ -82,7 +80,7 @@ const TicketsPage = () => {
               <TableRow key={ticket.id}>
                 <TableCell className="font-medium">
                   <Link
-                    to={`/${workspaceSlug}/tickets/${ticket.id}`}
+                    to={`/tickets/${ticket.id}`}
                     className="text-primary hover:underline"
                   >
                     {ticket.id}
@@ -135,21 +133,21 @@ const TicketsPage = () => {
       <Pagination>
         <PaginationContent>
           <PaginationItem>
-            <PaginationPrevious href={`/${workspaceSlug}/tickets?page=1`} />
+            <PaginationPrevious href={`/tickets?page=1`} />
           </PaginationItem>
           <PaginationItem>
-            <PaginationLink href={`/${workspaceSlug}/tickets?page=1`}>1</PaginationLink>
+            <PaginationLink href={`/tickets?page=1`}>1</PaginationLink>
           </PaginationItem>
           <PaginationItem>
-            <PaginationLink href={`/${workspaceSlug}/tickets?page=2`} isActive>
+            <PaginationLink href={`/tickets?page=2`} isActive>
               2
             </PaginationLink>
           </PaginationItem>
           <PaginationItem>
-            <PaginationLink href={`/${workspaceSlug}/tickets?page=3`}>3</PaginationLink>
+            <PaginationLink href={`/tickets?page=3`}>3</PaginationLink>
           </PaginationItem>
           <PaginationItem>
-            <PaginationNext href={`/${workspaceSlug}/tickets?page=3`} />
+            <PaginationNext href={`/tickets?page=3`} />
           </PaginationItem>
         </PaginationContent>
       </Pagination>
