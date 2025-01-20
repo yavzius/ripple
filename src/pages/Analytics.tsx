@@ -106,17 +106,19 @@ const Analytics = () => {
           </div>
           <div className="h-[400px]">
             <ChartContainer config={chartConfig}>
-              <BarChart data={mockData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="tickets" fill="var(--color-tickets)" />
-                <Bar dataKey="resolved" fill="var(--color-resolved)" />
-              </BarChart>
-              <ChartLegend>
-                <ChartLegendContent />
-              </ChartLegend>
+              <>
+                <BarChart data={mockData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="tickets" fill="var(--color-tickets)" />
+                  <Bar dataKey="resolved" fill="var(--color-resolved)" />
+                </BarChart>
+                <ChartLegend>
+                  <ChartLegendContent />
+                </ChartLegend>
+              </>
             </ChartContainer>
           </div>
         </Card>
