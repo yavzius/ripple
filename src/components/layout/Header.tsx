@@ -23,7 +23,14 @@ export const Header = ({ isCollapsed, onToggleSidebar }: HeaderProps) => {
               <ChevronLeft className="h-4 w-4" />
             )}
           </Button>
-          <h1 className="text-lg font-semibold">AI Support Platform</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-semibold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              ShoreTide
+            </h1>
+            <span className="text-sm text-muted-foreground">
+              AI Support Platform
+            </span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" className="relative h-8 w-8">

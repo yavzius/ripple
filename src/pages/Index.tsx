@@ -34,9 +34,9 @@ const Index = () => {
     <DashboardLayout>
       <div className="space-y-6">
         <div>
-          <h2 className="section-title">Dashboard</h2>
+          <h2 className="section-title">Welcome to ShoreTide</h2>
           <p className="text-sm text-muted-foreground">
-            Welcome back. Here's what's happening today.
+            Here's what's happening in your AI support platform today.
           </p>
         </div>
 
