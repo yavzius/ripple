@@ -16,7 +16,7 @@ export const Sidebar = () => {
   const location = useLocation();
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] w-64 flex-col border-r">
+    <div className="flex h-[calc(100vh-4rem)] w-64 flex-col border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <nav className="flex-1 space-y-1 p-4">
         {navigation.map((item) => {
           const isActive = location.pathname === item.href;
@@ -25,11 +25,11 @@ export const Sidebar = () => {
               <Button
                 variant={isActive ? "secondary" : "ghost"}
                 className={cn(
-                  "w-full justify-start gap-3",
-                  isActive && "bg-secondary"
+                  "w-full justify-start gap-3 transition-all duration-200",
+                  isActive ? "bg-primary/10 text-primary" : "hover:bg-primary/5"
                 )}
               >
-                <item.icon className="h-5 w-5" />
+                <item.icon className={cn("h-5 w-5", isActive && "text-primary")} />
                 {item.name}
               </Button>
             </Link>
