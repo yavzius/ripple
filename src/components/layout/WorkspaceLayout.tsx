@@ -35,14 +35,19 @@ const WorkspaceLayout = () => {
   useEffect(() => {
     const fetchWorkspaceAndValidate = async () => {
       try {
+        setLoading(true);
+        console.log("Fetching workspace data for slug:", workspaceSlug);
+
         // Check authentication
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
+          console.log("No session found, redirecting to auth");
           navigate("/auth");
           return;
         }
 
         if (!workspaceSlug) {
+          console.log("No workspace slug provided, redirecting to workspaces");
           navigate("/workspaces");
           return;
         }
@@ -56,16 +61,19 @@ const WorkspaceLayout = () => {
 
         if (workspaceError) {
           console.error("Workspace error:", workspaceError);
-          toast.error("Error loading workspace");
+          toast("Error loading workspace");
           navigate("/workspaces");
           return;
         }
 
         if (!workspaceData) {
-          toast.error("Workspace not found");
+          console.log("No workspace found for slug:", workspaceSlug);
+          toast("Workspace not found");
           navigate("/workspaces");
           return;
         }
+
+        console.log("Workspace data found:", workspaceData);
 
         // Verify user's membership
         const { data: membership, error: membershipError } = await supabase
@@ -77,21 +85,23 @@ const WorkspaceLayout = () => {
 
         if (membershipError) {
           console.error("Membership error:", membershipError);
-          toast.error("Error checking workspace access");
+          toast("Error checking workspace access");
           navigate("/workspaces");
           return;
         }
 
         if (!membership) {
-          toast.error("You don't have access to this workspace");
+          console.log("No membership found for user");
+          toast("You don't have access to this workspace");
           navigate("/workspaces");
           return;
         }
 
+        console.log("Membership verified:", membership);
         setWorkspace(workspaceData);
       } catch (error) {
         console.error("Error in workspace validation:", error);
-        toast.error("Failed to load workspace");
+        toast("Failed to load workspace");
         navigate("/workspaces");
       } finally {
         setLoading(false);
