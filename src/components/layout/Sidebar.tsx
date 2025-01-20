@@ -97,10 +97,10 @@ export const Sidebar = ({ isCollapsed }: SidebarProps) => {
               </span>
             </Link>
             <Link
-              to="/organizations"
+              to="/workspaces"
               className={cn(
                 "nav-item",
-                isActive("/organizations") && "nav-item-active"
+                isActive("/workspaces") && "nav-item-active"
               )}
             >
               <Building2 className="h-4 w-4 shrink-0" />
@@ -110,7 +110,7 @@ export const Sidebar = ({ isCollapsed }: SidebarProps) => {
                   isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
                 )}
               >
-                Organizations
+                Workspaces
               </span>
             </Link>
             <Link

@@ -5,8 +5,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import TicketsPage from "./pages/Tickets";
 import TicketDetail from "./pages/TicketDetail";
-import Organizations from "./pages/Organizations";
-import OrganizationDetail from "./pages/OrganizationDetail";
+import Workspaces from "./pages/Workspaces";
+import WorkspaceDetail from "./pages/WorkspaceDetail";
 import KnowledgeBase from "./pages/KnowledgeBase";
 import DocumentDetail from "./pages/DocumentDetail";
 import Training from "./pages/Training";
@@ -16,7 +16,7 @@ import Analytics from "./pages/Analytics";
 import Updates from "./pages/Updates";
 import Settings from "./pages/Settings";
 import CustomerPortal from "./pages/CustomerPortal";
-import OrganizationLayout from "./components/layout/OrganizationLayout";
+import WorkspaceLayout from "./components/layout/WorkspaceLayout";
 
 const queryClient = new QueryClient();
 
@@ -26,12 +26,12 @@ function App() {
       <TooltipProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Navigate to="/organizations" replace />} />
-            <Route path="/organizations" element={<Organizations />} />
-            <Route path="/organizations/:id" element={<OrganizationDetail />} />
+            <Route path="/" element={<Navigate to="/workspaces" replace />} />
+            <Route path="/workspaces" element={<Workspaces />} />
+            <Route path="/workspaces/:id" element={<WorkspaceDetail />} />
             
-            {/* Organization-specific routes */}
-            <Route path="/:orgSlug" element={<OrganizationLayout />}>
+            {/* Workspace-specific routes */}
+            <Route path="/:workspaceSlug" element={<WorkspaceLayout />}>
               <Route path="dashboard" element={<Index />} />
               <Route path="tickets" element={<TicketsPage />} />
               <Route path="tickets/:id" element={<TicketDetail />} />

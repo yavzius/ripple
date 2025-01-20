@@ -9,36 +9,36 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      organization_members: {
+      workspace_members: {
         Row: {
           created_at: string
-          organization_id: string
           role: string
           user_id: string
+          workspace_id: string
         }
         Insert: {
           created_at?: string
-          organization_id: string
           role: string
           user_id: string
+          workspace_id: string
         }
         Update: {
           created_at?: string
-          organization_id?: string
           role?: string
           user_id?: string
+          workspace_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "organization_members_organization_id_fkey"
-            columns: ["organization_id"]
+            foreignKeyName: "workspace_members_workspace_id_fkey"
+            columns: ["workspace_id"]
             isOneToOne: false
-            referencedRelation: "organizations"
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
       }
-      organizations: {
+      workspaces: {
         Row: {
           created_at: string
           id: string
