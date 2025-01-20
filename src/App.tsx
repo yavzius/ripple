@@ -25,15 +25,47 @@ const queryClient = new QueryClient();
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [defaultWorkspace, setDefaultWorkspace] = useState<string | null>(null);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setIsAuthenticated(!!session);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      const isAuthed = !!session;
+      setIsAuthenticated(isAuthed);
+
+      if (isAuthed) {
+        // Fetch user's default workspace
+        const { data: workspaces } = await supabase
+          .from('workspace_members')
+          .select('workspace_id, workspaces:workspaces(slug)')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .single();
+
+        if (workspaces?.workspaces?.slug) {
+          setDefaultWorkspace(workspaces.workspaces.slug);
+        }
+      }
     });
 
     // Check initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsAuthenticated(!!session);
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      const isAuthed = !!session;
+      setIsAuthenticated(isAuthed);
+
+      if (isAuthed && session) {
+        const { data: workspaces } = await supabase
+          .from('workspace_members')
+          .select('workspace_id, workspaces:workspaces(slug)')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .single();
+
+        if (workspaces?.workspaces?.slug) {
+          setDefaultWorkspace(workspaces.workspaces.slug);
+        }
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -56,7 +88,14 @@ function App() {
               </>
             ) : (
               <>
-                <Route path="/" element={<Navigate to="/workspaces" replace />} />
+                <Route 
+                  path="/" 
+                  element={
+                    defaultWorkspace ? 
+                      <Navigate to={`/${defaultWorkspace}/dashboard`} replace /> : 
+                      <Navigate to="/workspaces" replace />
+                  } 
+                />
                 <Route path="/auth" element={<Navigate to="/workspaces" replace />} />
                 <Route path="/workspaces" element={<Workspaces />} />
                 <Route path="/workspaces/:id" element={<WorkspaceDetail />} />
