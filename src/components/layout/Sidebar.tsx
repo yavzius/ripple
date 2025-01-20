@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import {
   BarChart3,
   Bell,
@@ -15,8 +15,12 @@ interface SidebarProps {
 
 export const Sidebar = ({ isCollapsed }: SidebarProps) => {
   const location = useLocation();
+  const { workspaceSlug } = useParams();
 
   const isActive = (path: string) => location.pathname === path;
+
+  // Helper function to construct workspace-scoped URLs
+  const getWorkspaceUrl = (path: string) => `/${workspaceSlug}${path}`;
 
   return (
     <aside
@@ -29,10 +33,10 @@ export const Sidebar = ({ isCollapsed }: SidebarProps) => {
         <div className="px-3 py-2">
           <div className="space-y-1">
             <Link
-              to="/dashboard"
+              to={getWorkspaceUrl("/dashboard")}
               className={cn(
                 "nav-item",
-                isActive("/dashboard") && "nav-item-active"
+                isActive(getWorkspaceUrl("/dashboard")) && "nav-item-active"
               )}
             >
               <BarChart3 className="h-4 w-4 shrink-0" />
@@ -46,10 +50,10 @@ export const Sidebar = ({ isCollapsed }: SidebarProps) => {
               </span>
             </Link>
             <Link
-              to="/tickets"
+              to={getWorkspaceUrl("/tickets")}
               className={cn(
                 "nav-item",
-                isActive("/tickets") && "nav-item-active"
+                isActive(getWorkspaceUrl("/tickets")) && "nav-item-active"
               )}
             >
               <TicketCheck className="h-4 w-4 shrink-0" />
@@ -63,10 +67,10 @@ export const Sidebar = ({ isCollapsed }: SidebarProps) => {
               </span>
             </Link>
             <Link
-              to="/training"
+              to={getWorkspaceUrl("/training")}
               className={cn(
                 "nav-item",
-                isActive("/training") && "nav-item-active"
+                isActive(getWorkspaceUrl("/training")) && "nav-item-active"
               )}
             >
               <GraduationCap className="h-4 w-4 shrink-0" />
@@ -80,10 +84,10 @@ export const Sidebar = ({ isCollapsed }: SidebarProps) => {
               </span>
             </Link>
             <Link
-              to="/knowledge"
+              to={getWorkspaceUrl("/knowledge")}
               className={cn(
                 "nav-item",
-                isActive("/knowledge") && "nav-item-active"
+                isActive(getWorkspaceUrl("/knowledge")) && "nav-item-active"
               )}
             >
               <BookOpen className="h-4 w-4 shrink-0" />
@@ -114,10 +118,10 @@ export const Sidebar = ({ isCollapsed }: SidebarProps) => {
               </span>
             </Link>
             <Link
-              to="/updates"
+              to={getWorkspaceUrl("/updates")}
               className={cn(
                 "nav-item",
-                isActive("/updates") && "nav-item-active"
+                isActive(getWorkspaceUrl("/updates")) && "nav-item-active"
               )}
             >
               <Bell className="h-4 w-4 shrink-0" />
