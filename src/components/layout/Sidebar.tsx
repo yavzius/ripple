@@ -1,15 +1,13 @@
-import { Home, Inbox, Book, BarChart2, Users, Building } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import {
+  BarChart3,
+  Bell,
+  BookOpen,
+  Building2,
+  GraduationCap,
+  TicketCheck,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useLocation, Link } from "react-router-dom";
-
-const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: Home },
-  { name: "Tickets", href: "/tickets", icon: Inbox },
-  { name: "Knowledge Base", href: "/knowledge", icon: Book },
-  { name: "CRM", href: "/organizations", icon: Building },
-  { name: "Training", href: "/training", icon: Users },
-  { name: "Analytics", href: "/analytics", icon: BarChart2 },
-];
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -18,37 +16,123 @@ interface SidebarProps {
 export const Sidebar = ({ isCollapsed }: SidebarProps) => {
   const location = useLocation();
 
+  const isActive = (path: string) => location.pathname === path;
+
   return (
-    <div
+    <aside
       className={cn(
-        "fixed left-0 top-14 h-[calc(100vh-3.5rem)] border-r bg-background transition-all duration-200",
+        "fixed left-0 top-14 z-30 h-[calc(100vh-3.5rem)] border-r bg-background transition-all duration-200",
         isCollapsed ? "sidebar-collapsed" : "sidebar-expanded"
       )}
     >
-      <nav className="flex h-full flex-col gap-2 p-2">
-        {navigation.map((item) => {
-          const isActive = location.pathname === item.href;
-          return (
+      <div className="space-y-4 py-4">
+        <div className="px-3 py-2">
+          <div className="space-y-1">
             <Link
-              key={item.name}
-              to={item.href}
+              to="/"
               className={cn(
-                "nav-item group relative",
-                isActive && "nav-item-active"
+                "nav-item",
+                isActive("/") && "nav-item-active"
               )}
-              title={isCollapsed ? item.name : undefined}
             >
-              <item.icon className="h-4 w-4 shrink-0" />
-              {!isCollapsed && <span>{item.name}</span>}
-              {isCollapsed && (
-                <div className="absolute left-full top-0 ml-2 hidden rounded-md bg-secondary px-2 py-1 text-xs text-secondary-foreground group-hover:block">
-                  {item.name}
-                </div>
-              )}
+              <BarChart3 className="h-4 w-4" />
+              <span
+                className={cn(
+                  "transition-opacity duration-200",
+                  isCollapsed && "opacity-0"
+                )}
+              >
+                Analytics
+              </span>
             </Link>
-          );
-        })}
-      </nav>
-    </div>
+            <Link
+              to="/tickets"
+              className={cn(
+                "nav-item",
+                isActive("/tickets") && "nav-item-active"
+              )}
+            >
+              <TicketCheck className="h-4 w-4" />
+              <span
+                className={cn(
+                  "transition-opacity duration-200",
+                  isCollapsed && "opacity-0"
+                )}
+              >
+                Tickets
+              </span>
+            </Link>
+            <Link
+              to="/training"
+              className={cn(
+                "nav-item",
+                isActive("/training") && "nav-item-active"
+              )}
+            >
+              <GraduationCap className="h-4 w-4" />
+              <span
+                className={cn(
+                  "transition-opacity duration-200",
+                  isCollapsed && "opacity-0"
+                )}
+              >
+                Training
+              </span>
+            </Link>
+            <Link
+              to="/knowledge-base"
+              className={cn(
+                "nav-item",
+                isActive("/knowledge-base") && "nav-item-active"
+              )}
+            >
+              <BookOpen className="h-4 w-4" />
+              <span
+                className={cn(
+                  "transition-opacity duration-200",
+                  isCollapsed && "opacity-0"
+                )}
+              >
+                Knowledge Base
+              </span>
+            </Link>
+            <Link
+              to="/organizations"
+              className={cn(
+                "nav-item",
+                isActive("/organizations") && "nav-item-active"
+              )}
+            >
+              <Building2 className="h-4 w-4" />
+              <span
+                className={cn(
+                  "transition-opacity duration-200",
+                  isCollapsed && "opacity-0"
+                )}
+              >
+                Organizations
+              </span>
+            </Link>
+            <Link
+              to="/notifications"
+              className={cn(
+                "nav-item",
+                isActive("/notifications") && "nav-item-active"
+              )}
+            >
+              <Bell className="h-4 w-4" />
+              <span
+                className={cn(
+                  "transition-opacity duration-200",
+                  isCollapsed && "opacity-0"
+                )}
+              >
+                Notifications
+              </span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    </aside>
   );
 };

@@ -6,10 +6,12 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuFooter,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Bell } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { Link } from "react-router-dom";
 
 // Mock notifications data - in a real app, this would come from an API
 const notifications = [
@@ -51,26 +53,49 @@ export const NotificationsDropdown = () => {
           </span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80">
-        <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+      <DropdownMenuContent
+        align="end"
+        className="w-80 bg-background border shadow-lg"
+      >
+        <DropdownMenuLabel className="font-normal">
+          <div className="flex flex-col gap-1">
+            <h4 className="font-semibold leading-none tracking-tight">
+              Notifications
+            </h4>
+            <p className="text-sm text-muted-foreground">
+              You have {notifications.length} unread messages
+            </p>
+          </div>
+        </DropdownMenuLabel>
         <DropdownMenuSeparator />
         {notifications.map((notification) => (
           <DropdownMenuItem
             key={notification.id}
-            className="cursor-pointer"
+            className="cursor-pointer focus:bg-muted"
             onClick={() => handleNotificationClick(notification)}
           >
-            <div className="flex flex-col gap-1">
-              <div className="font-medium">{notification.title}</div>
-              <div className="text-sm text-muted-foreground">
-                {notification.description}
+            <div className="flex items-start gap-4 py-2">
+              <div className="rounded-full bg-primary/10 p-2">
+                <Bell className="h-4 w-4 text-primary" />
               </div>
-              <div className="text-xs text-muted-foreground">
-                {notification.time}
+              <div className="flex flex-col gap-1">
+                <p className="font-medium leading-none">{notification.title}</p>
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {notification.description}
+                </p>
+                <p className="text-xs text-muted-foreground">{notification.time}</p>
               </div>
             </div>
           </DropdownMenuItem>
         ))}
+        <DropdownMenuSeparator />
+        <DropdownMenuFooter className="p-2">
+          <Link to="/notifications" className="w-full">
+            <Button variant="outline" className="w-full">
+              View all notifications
+            </Button>
+          </Link>
+        </DropdownMenuFooter>
       </DropdownMenuContent>
     </DropdownMenu>
   );
