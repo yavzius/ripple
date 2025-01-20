@@ -17,6 +17,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Ticket, TicketCheck, TicketX } from "lucide-react";
+import { Link } from "react-router-dom";
 
 // Mock data for initial display
 const tickets = [
@@ -79,7 +80,14 @@ const TicketsPage = () => {
             <TableBody>
               {tickets.map((ticket) => (
                 <TableRow key={ticket.id}>
-                  <TableCell className="font-medium">{ticket.id}</TableCell>
+                  <TableCell className="font-medium">
+                    <Link
+                      to={`/tickets/${ticket.id}`}
+                      className="text-primary hover:underline"
+                    >
+                      {ticket.id}
+                    </Link>
+                  </TableCell>
                   <TableCell>{ticket.subject}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
