@@ -1,11 +1,11 @@
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { Session } from '@supabase/supabase-js';
+import { queryClient } from "@/lib/query-client";
+import { useWorkspace } from "@/hooks/use-workspace";
 import Index from "./pages/Index";
 import TicketsPage from "./pages/Tickets";
 import NewTicket from "./pages/NewTicket";
@@ -22,8 +22,6 @@ import CustomerPortal from "./pages/CustomerPortal";
 import WorkspaceLayout from "./components/layout/WorkspaceLayout";
 import Auth from "./pages/Auth";
 import { Skeleton } from "@/components/ui/skeleton";
-
-const queryClient = new QueryClient();
 
 const InitialLoadingState = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -43,6 +41,11 @@ function App() {
     async function handleSession(session: Session | null) {
       const isAuthed = !!session;
       setIsAuthenticated(isAuthed);
+
+      if (!isAuthed) {
+        // Clear all queries when logging out
+        queryClient.clear();
+      }
 
       if (isAuthed && session) {
         setIsLoading(false);
@@ -68,46 +71,45 @@ function App() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <BrowserRouter>
-          <Routes>
-            {!isAuthenticated ? (
-              <>
-                <Route path="/auth" element={<Auth />} />
-                <Route path="*" element={<Navigate to="/auth" replace />} />
-              </>
-            ) : (
-              <>
-                <Route 
-                  path="/" 
-                  element={<Navigate to="/dashboard" replace />} 
-                />
-                <Route path="/auth" element={<Navigate to="/" replace />} />
-                
-                {/* Main routes */}
-                <Route element={<WorkspaceLayout />}>
-                  <Route path="/dashboard" element={<Index />} />
-                  <Route path="/tickets" element={<TicketsPage />} />
-                  <Route path="/tickets/new" element={<NewTicket />} />
-                  <Route path="/tickets/:id" element={<TicketDetail />} />
-                  <Route path="/knowledge" element={<KnowledgeBase />} />
-                  <Route path="/knowledge/:id" element={<DocumentDetail />} />
-                  <Route path="/training" element={<Training />} />
-                  <Route path="/training/:id" element={<TrainingCardDetail />} />
-                  <Route path="/training/session" element={<TrainingSession />} />
-                  <Route path="/analytics" element={<Analytics />} />
-                  <Route path="/updates" element={<Updates />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/customer-portal" element={<CustomerPortal />} />
-                </Route>
-              </>
-            )}
-          </Routes>
-        </BrowserRouter>
-        <Sonner />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <TooltipProvider>
+      <BrowserRouter>
+        <Routes>
+          {!isAuthenticated ? (
+            <>
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/customer" element={<CustomerPortal />} />
+              <Route path="*" element={<Navigate to="/auth" replace />} />
+            </>
+          ) : (
+            <>
+              <Route 
+                path="/" 
+                element={<Navigate to="/dashboard" replace />} 
+              />
+              <Route path="/auth" element={<Navigate to="/" replace />} />
+              <Route path="/customer" element={<CustomerPortal />} />
+              
+              {/* Main routes */}
+              <Route element={<WorkspaceLayout />}>
+                <Route path="/dashboard" element={<Index />} />
+                <Route path="/tickets" element={<TicketsPage />} />
+                <Route path="/tickets/new" element={<NewTicket />} />
+                <Route path="/tickets/:id" element={<TicketDetail />} />
+                <Route path="/knowledge" element={<KnowledgeBase />} />
+                <Route path="/knowledge/:id" element={<DocumentDetail />} />
+                <Route path="/training" element={<Training />} />
+                <Route path="/training/:id" element={<TrainingCardDetail />} />
+                <Route path="/training/session" element={<TrainingSession />} />
+                <Route path="/analytics" element={<Analytics />} />
+                <Route path="/updates" element={<Updates />} />
+                <Route path="/settings" element={<Settings />} />
+              </Route>
+            </>
+          )}
+        </Routes>
+      </BrowserRouter>
+      <Sonner />
+    </TooltipProvider>
   );
 }
 

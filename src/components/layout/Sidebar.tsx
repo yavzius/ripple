@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   Ticket,
   Settings,
-  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -57,11 +56,6 @@ export const Sidebar = ({ isCollapsed }: SidebarProps) => {
       title: "Settings",
       href: "/settings",
       icon: Settings,
-    },
-    {
-      title: "Customer Portal",
-      href: "/customer-portal",
-      icon: Users,
     },
   ];
 

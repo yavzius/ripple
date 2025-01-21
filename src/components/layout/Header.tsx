@@ -2,6 +2,8 @@ import { ChevronLeft, ChevronRight, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NotificationsDropdown } from "@/components/notifications/NotificationsDropdown";
 import { useNavigate } from "react-router-dom";
+import { useWorkspace } from "@/hooks/use-workspace";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface HeaderProps {
   isCollapsed: boolean;
@@ -10,6 +12,7 @@ interface HeaderProps {
 
 export const Header = ({ isCollapsed, onToggleSidebar }: HeaderProps) => {
   const navigate = useNavigate();
+  const { workspace, loading } = useWorkspace();
 
   return (
     <header className="sticky top-0 z-50 flex h-14 items-center border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -36,16 +39,23 @@ export const Header = ({ isCollapsed, onToggleSidebar }: HeaderProps) => {
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <NotificationsDropdown />
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-8 w-8"
-            onClick={() => navigate('/settings')}
-          >
-            <Settings className="h-4 w-4" />
-          </Button>
+        <div className="flex items-center gap-4">
+          {loading ? (
+            <Skeleton className="h-4 w-32" />
+          ) : workspace ? (
+            <span className="text-sm font-medium">{workspace.name}</span>
+          ) : null}
+          <div className="flex items-center gap-2">
+            <NotificationsDropdown />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8"
+              onClick={() => navigate('/settings')}
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
     </header>
