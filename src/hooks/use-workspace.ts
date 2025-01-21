@@ -11,12 +11,26 @@ async function fetchWorkspace(): Promise<Workspace> {
   if (authError) throw authError;
   if (!session?.user?.id) throw new Error('Not authenticated');
 
+  // First check if user is a member of any workspace
+  const { data: memberData, error: memberError } = await supabase
+    .from('workspace_members')
+    .select('workspace_id')
+    .eq('user_id', session.user.id)
+    .single();
+
+  if (memberError) throw memberError;
+  if (!memberData?.workspace_id) throw new Error('No workspace found');
+
+  // Then fetch the workspace details
   const { data, error } = await supabase
     .from('workspaces')
     .select('*')
+    .eq('id', memberData.workspace_id)
     .single();
 
   if (error) throw error;
+  if (!data) throw new Error('Workspace not found');
+  
   return data as Workspace;
 }
 

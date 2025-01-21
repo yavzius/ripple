@@ -19,8 +19,10 @@ import Analytics from "./pages/Analytics";
 import Updates from "./pages/Updates";
 import Settings from "./pages/Settings";
 import CustomerPortal from "./pages/CustomerPortal";
+import ChatbotPortal from "./pages/ChatbotPortal";
 import WorkspaceLayout from "./components/layout/WorkspaceLayout";
 import Auth from "./pages/Auth";
+import CRM from "./pages/CRM";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const InitialLoadingState = () => (
@@ -78,6 +80,7 @@ function App() {
             <>
               <Route path="/auth" element={<Auth />} />
               <Route path="/customer" element={<CustomerPortal />} />
+              <Route path="/chat/:workspaceId" element={<ChatbotPortal />} />
               <Route path="*" element={<Navigate to="/auth" replace />} />
             </>
           ) : (
@@ -88,6 +91,7 @@ function App() {
               />
               <Route path="/auth" element={<Navigate to="/" replace />} />
               <Route path="/customer" element={<CustomerPortal />} />
+              <Route path="/chat/:workspaceId" element={<ChatbotPortal />} />
               
               {/* Main routes */}
               <Route element={<WorkspaceLayout />}>
@@ -103,6 +107,7 @@ function App() {
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/updates" element={<Updates />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/crm" element={<CRM />} />
               </Route>
             </>
           )}

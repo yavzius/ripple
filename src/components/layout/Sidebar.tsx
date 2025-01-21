@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Ticket,
   Settings,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -31,6 +32,11 @@ export const Sidebar = ({ isCollapsed }: SidebarProps) => {
       title: "Tickets",
       href: "/tickets",
       icon: Ticket,
+    },
+    {
+      title: "CRM",
+      href: "/crm",
+      icon: Users,
     },
     {
       title: "Knowledge Base",

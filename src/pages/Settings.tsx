@@ -10,6 +10,7 @@ import { useForm } from "react-hook-form";
 import { UserPlus, Users, Settings as SettingsIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/hooks/use-workspace";
 
 interface UserFormData {
   email: string;
@@ -18,12 +19,16 @@ interface UserFormData {
 }
 
 export default function Settings() {
+  const { workspace } = useWorkspace();
   const [aiEnabled, setAiEnabled] = useState(true);
   const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
-  const [users] = useState([
+  const [users, setUsers] = useState([
     { id: 1, name: "Admin User", email: "admin@example.com", role: "Admin" },
     { id: 2, name: "Support Agent", email: "agent@example.com", role: "Agent" },
   ]);
+  const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserRole, setNewUserRole] = useState("agent");
 
   useEffect(() => {
     const getUser = async () => {
@@ -53,6 +58,13 @@ export default function Settings() {
     toast.success(`AI responses ${checked ? "enabled" : "disabled"}`);
   };
 
+  const handleCopyChatbotUrl = () => {
+    if (!workspace) return;
+    const url = `${window.location.origin}/chat/${workspace.id}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Chatbot URL copied to clipboard");
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -67,6 +79,25 @@ export default function Settings() {
       </div>
 
       <div className="grid gap-6">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Chatbot Integration</CardTitle>
+            </div>
+            <CardDescription>Get your workspace's chatbot URL to embed in your website</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <code className="flex-1 p-2 bg-muted rounded">
+                {workspace ? `${window.location.origin}/chat/${workspace.id}` : 'Loading...'}
+              </code>
+              <Button onClick={handleCopyChatbotUrl} disabled={!workspace}>
+                Copy URL
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* AI Settings Card */}
         <Card>
           <CardHeader>
