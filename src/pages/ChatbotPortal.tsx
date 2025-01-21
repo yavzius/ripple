@@ -39,26 +39,26 @@ const ChatbotPortal = () => {
   useEffect(() => {
     const fetchWorkspace = async () => {
       if (!workspaceId) {
-        setError("No workspace ID provided");
+        setError("No account ID provided");
         return;
       }
 
       try {
         const { data, error: workspaceError } = await supabase
-          .from('workspaces')
+          .from('accounts')
           .select('name, id')
           .eq('id', workspaceId)
           .single();
 
         if (workspaceError) {
-          setError("Workspace not found");
+          setError("Account not found");
           return;
         }
 
         setWorkspace(data);
         setError(null);
       } catch (err) {
-        setError("Failed to load workspace");
+        setError("Failed to load account");
       }
     };
 
@@ -76,20 +76,20 @@ const ChatbotPortal = () => {
       // First create or get organization
       let organizationId;
       const { data: existingOrg } = await supabase
-        .from('organizations')
+        .from('customer_companies')
         .select('id')
         .eq('name', tempUserDetails.organization_name)
-        .eq('workspace_id', workspaceId)
+        .eq('account_id', workspaceId)
         .single();
 
       if (existingOrg) {
         organizationId = existingOrg.id;
       } else if (workspace) {
         const { data: newOrg, error: orgError } = await supabase
-          .from('organizations')
+          .from('customer_companies')
           .insert([{
             name: tempUserDetails.organization_name,
-            workspace_id: workspaceId,
+            account_id: workspaceId,
             domain: tempUserDetails.domain || null
           }])
           .select()

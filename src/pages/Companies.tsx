@@ -54,7 +54,7 @@ export default function Customers() {
         .select(`
           *,users(*)
         `)
-        .eq("workspace_id", workspace.id);
+        .eq("account_id", workspace.id);
 
       if (error) {
         console.error("Error fetching customers:", error);

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { useToast } from "@/components/ui/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -34,6 +34,7 @@ export default function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
   const { workspace } = useWorkspace();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const { data: company, isLoading } = useQuery({
     queryKey: ["customer", id],
@@ -47,7 +48,7 @@ export default function CustomerDetail() {
           users(*)
         `)
         .eq("id", id)
-        .eq("workspace_id", workspace.id)
+        .eq("account_id", workspace.id)
         .single();
 
       if (error) {
@@ -90,9 +91,8 @@ export default function CustomerDetail() {
     <div className="container py-8 space-y-8">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">{company.name}</h1>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Customer
+        <Button onClick={() => navigate(`/companies/${id}/contacts/new`)}>
+          Add Contact
         </Button>
       </div>
 
@@ -100,7 +100,6 @@ export default function CustomerDetail() {
         <Card>
           <CardHeader>
             <CardTitle>Company Details</CardTitle>
-            <CardDescription>Basic information about the company</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -121,7 +120,6 @@ export default function CustomerDetail() {
         <Card>
           <CardHeader>
             <CardTitle>Statistics</CardTitle>
-            <CardDescription>Key metrics about this customer</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
@@ -135,8 +133,7 @@ export default function CustomerDetail() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Users</CardTitle>
-          <CardDescription>People associated with this company</CardDescription>
+          <CardTitle>Contacts</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>

@@ -14,13 +14,23 @@ CREATE SCHEMA IF NOT EXISTS public;
 CREATE OR REPLACE FUNCTION public.handle_new_user() 
 RETURNS TRIGGER AS $$
 BEGIN
-    INSERT INTO public.users (id, email, full_name, avatar_url, organization_id)
+    INSERT INTO public.users (
+        id, 
+        email,
+        first_name,
+        last_name,
+        role,
+        customer_company_id,
+        account_id
+    )
     VALUES (
         NEW.id,
         NEW.email,
-        NEW.raw_user_meta_data->>'full_name',
-        NEW.raw_user_meta_data->>'avatar_url',
-        NEW.raw_user_meta_data->>'organization_id'
+        NEW.raw_user_meta_data->>'first_name',
+        NEW.raw_user_meta_data->>'last_name',
+        COALESCE(NEW.raw_user_meta_data->>'role', 'customer'),
+        NEW.raw_user_meta_data->>'customer_company_id',
+        NEW.raw_user_meta_data->>'account_id'
     );
     RETURN NEW;
 END;

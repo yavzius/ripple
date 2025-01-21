@@ -29,6 +29,7 @@ import NewCustomerCompany from "./pages/NewCustomerCompany";
 import CustomerDetail from "./pages/CompanyDetail";
 import Companies from "./pages/Companies";
 import CompanyDetail from "./pages/CompanyDetail";
+import NewContact from "./pages/NewContact";
 
 const InitialLoadingState = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -115,6 +116,7 @@ function App() {
                 <Route path="/companies" element={<Companies />} />
                 <Route path="/companies/new" element={<NewCustomerCompany />} />
                 <Route path="/companies/:id" element={<CompanyDetail />} />
+                <Route path="/companies/:id/contacts/new" element={<NewContact />} />
               </Route>
             </>
           )}
