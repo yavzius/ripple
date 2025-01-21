@@ -56,7 +56,7 @@ const NewTicket = () => {
 
         // Create a map of organization IDs to names
         const orgMap = new Map(
-          organizationsData?.map(org => [org.id, org.name]) || []
+          organizationsData?.map(org => [org.account_id, org.name]) || []
         );
 
         // Get customers with their organization names
@@ -64,7 +64,7 @@ const NewTicket = () => {
           ?.filter(user => user.role === 'customer')
           .map(user => ({
             ...user,
-            organization_name: orgMap.get(user.organization_id) || 'Unknown Organization'
+            organization_name: orgMap.get(user.customer_company_id) || 'Unknown Organization'
           })) || [];
 
         setCustomers(customerUsers);

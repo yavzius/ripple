@@ -177,33 +177,33 @@ export type Database = {
       }
       customer_companies: {
         Row: {
+          account_id: string
           created_at: string | null
           domain: string | null
           id: string
           name: string
           updated_at: string | null
-          workspace_id: string
         }
         Insert: {
+          account_id: string
           created_at?: string | null
           domain?: string | null
           id?: string
           name: string
           updated_at?: string | null
-          workspace_id: string
         }
         Update: {
+          account_id?: string
           created_at?: string | null
           domain?: string | null
           id?: string
           name?: string
           updated_at?: string | null
-          workspace_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "organizations_workspace_id_fkey"
-            columns: ["workspace_id"]
+            foreignKeyName: "customer_companies_account_id_fkey"
+            columns: ["account_id"]
             isOneToOne: false
             referencedRelation: "accounts"
             referencedColumns: ["id"]
@@ -253,15 +253,7 @@ export type Database = {
           title?: string
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "documents_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       messages: {
         Row: {
@@ -297,13 +289,6 @@ export type Database = {
             columns: ["channel_id"]
             isOneToOne: false
             referencedRelation: "channels"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "messages_sender_id_fkey"
-            columns: ["sender_id"]
-            isOneToOne: false
-            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -368,20 +353,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "tickets_assignee_id_fkey"
-            columns: ["assignee_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tickets_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "tickets_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
@@ -436,15 +407,7 @@ export type Database = {
           trigger?: string
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "learning_cards_creator_id_fkey"
-            columns: ["creator_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       training_feedback: {
         Row: {
@@ -498,13 +461,6 @@ export type Database = {
             referencedRelation: "training_sessions"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "training_feedback_trainer_id_fkey"
-            columns: ["trainer_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
         ]
       }
       training_sessions: {
@@ -547,49 +503,38 @@ export type Database = {
           trainer_id?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "training_sessions_trainer_id_fkey"
-            columns: ["trainer_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       users: {
         Row: {
           account_id: string | null
           created_at: string | null
           customer_company_id: string | null
-          email: string
+          email: string | null
           first_name: string | null
           id: string
           last_name: string | null
           role: string | null
-          updated_at: string | null
         }
         Insert: {
           account_id?: string | null
           created_at?: string | null
           customer_company_id?: string | null
-          email: string
+          email?: string | null
           first_name?: string | null
-          id?: string
+          id: string
           last_name?: string | null
           role?: string | null
-          updated_at?: string | null
         }
         Update: {
           account_id?: string | null
           created_at?: string | null
           customer_company_id?: string | null
-          email?: string
+          email?: string | null
           first_name?: string | null
           id?: string
           last_name?: string | null
           role?: string | null
-          updated_at?: string | null
         }
         Relationships: [
           {

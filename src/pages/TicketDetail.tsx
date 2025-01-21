@@ -29,27 +29,6 @@ type Tables = Database['public']['Tables'];
 type TicketRow = Tables['tickets']['Row'];
 type MessageRow = Tables['messages']['Row'];
 
-interface TicketWithRelations extends Omit<TicketRow, 'customer_id' | 'assignee_id'> {
-  customer: UserBasicInfo | null;
-  assignee: UserBasicInfo | null;
-  customer_id: string | null;
-  assignee_id: string | null;
-}
-
-type MessageWithUser = {
-  id: string;
-  ticket_id: string;
-  content: string;
-  created_at: string;
-  is_internal: boolean;
-  is_ai_generated: boolean;
-  intent: string;
-  sentiment: string;
-  ai_metadata: any;
-  attachments: any;
-  sender: UserBasicInfo;
-  sender_id: string;
-}
 
 type ReplyFormData = {
   content: string;
@@ -99,7 +78,9 @@ const TicketDetail = () => {
         ticket_id: ticket.id,
         content: data.content,
         sender_id: session.user.id,
-        is_internal: false,
+        metadata: {
+          is_internal: false,
+        },
       });
       
       reset();
@@ -192,7 +173,7 @@ const TicketDetail = () => {
               <div
                 key={message.id}
                 className={`flex flex-col gap-2 rounded-lg p-4 ${
-                  message.is_ai_generated
+                  message.metadata.is_ai_generated
                     ? "bg-muted ml-8"
                     : "bg-primary/5 mr-8"
                 }`}
@@ -206,7 +187,7 @@ const TicketDetail = () => {
                       </AvatarFallback>
                     </Avatar>
                     <span className="font-medium">
-                      {message.is_ai_generated 
+                      {message.metadata.is_ai_generated 
                         ? "AI Agent" 
                         : message.sender?.full_name || message.sender?.email || "Unknown"}
                     </span>

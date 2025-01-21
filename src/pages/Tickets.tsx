@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/pagination";
 import { Loader2, Ticket, TicketCheck, TicketX } from "lucide-react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
-import { useTickets, updateTicket } from "@/lib/actions";
+import { useTickets, updateTicket, getTickets } from "@/lib/actions";
 import { useEffect, useState } from "react";
 import type { Database } from "@/integrations/supabase/types";
 import { format } from "date-fns";
@@ -26,13 +26,18 @@ import { format } from "date-fns";
 interface UserBasicInfo {
   id: string;
   email: string;
-  full_name: string | null;
-  avatar_url: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  customer_company?: {
+    id: string;
+    name: string;
+    domain: string | null;
+  } | null;
 }
 
 type Tables = Database['public']['Tables'];
 type TicketRow = Tables['tickets']['Row'];
-
+type CustomerRow = Tables['users']['Row'];
 interface TicketWithRelations extends Omit<TicketRow, 'customer_id' | 'assignee_id'> {
   customer: UserBasicInfo | null;
   assignee: UserBasicInfo | null;
@@ -44,35 +49,33 @@ const TicketsPage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const page = parseInt(searchParams.get("page") || "1");
-  const { data: tickets = [], isLoading, error } = useTickets();
+  const [tickets, setTickets] = useState<TicketWithRelations[]>([]);
   const [totalPages, setTotalPages] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     setTotalPages(Math.ceil(tickets.length / ITEMS_PER_PAGE));
   }, [tickets]);
 
-  const handleStatusChange = async (ticketId: string, newStatus: string) => {
-    try {
-      await updateTicket(ticketId, { status: newStatus });
-      // React Query will automatically revalidate the tickets query
-    } catch (err) {
-      console.error("Failed to update ticket status:", err);
-    }
-  };
+  // Calculate paginated tickets
+  const startIndex = (page - 1) * ITEMS_PER_PAGE;
+  const paginatedTickets = tickets.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
-  const paginatedTickets = tickets.slice(
-    (page - 1) * ITEMS_PER_PAGE,
-    page * ITEMS_PER_PAGE
-  );
+  //get tickets
+  useEffect(() => {
+    const fetchTickets = async () => {
+      setIsLoading(true);
+      try {
+        const tickets = await getTickets();
+        setTickets(tickets);
+        console.log(tickets);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchTickets();
+  }, []);
 
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-4 py-12">
-        <p className="text-destructive">Error: {error instanceof Error ? error.message : "Failed to load tickets"}</p>
-        <Button onClick={() => window.location.reload()}>Retry</Button>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -97,7 +100,7 @@ const TicketsPage = () => {
               <TableHead>Priority</TableHead>
               <TableHead>Created</TableHead>
               <TableHead>Customer</TableHead>
-              <TableHead>Assignee</TableHead>
+              <TableHead>Company</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -160,10 +163,10 @@ const TicketsPage = () => {
                     {format(new Date(ticket.created_at), "MMM d, yyyy")}
                   </TableCell>
                   <TableCell>
-                    {ticket.customer?.full_name || ticket.customer?.email || "Unknown"}
+                    {ticket.customer?.first_name || ticket.customer?.email || "Unknown"}
                   </TableCell>
                   <TableCell>
-                    {ticket.assignee?.full_name || ticket.assignee?.email || "Unassigned"}
+                    {ticket.customer?.customer_company?.name || "Unknown"}
                   </TableCell>
                 </TableRow>
               ))

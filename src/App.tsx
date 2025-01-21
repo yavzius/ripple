@@ -105,8 +105,8 @@ function App() {
                 <Route path="/tickets" element={<TicketsPage />} />
                 <Route path="/tickets/new" element={<NewTicket />} />
                 <Route path="/tickets/:id" element={<TicketDetail />} />
-                <Route path="/knowledge-base" element={<KnowledgeBase />} />
-                <Route path="/knowledge-base/:id" element={<DocumentDetail />} />
+                <Route path="/knowledge" element={<KnowledgeBase />} />
+                <Route path="/knowledge/:id" element={<DocumentDetail />} />
                 <Route path="/training" element={<Training />} />
                 <Route path="/training/cards/:id" element={<TrainingCardDetail />} />
                 <Route path="/training/session" element={<TrainingSession />} />
