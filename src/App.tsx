@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Session } from '@supabase/supabase-js';
 import Index from "./pages/Index";
 import TicketsPage from "./pages/Tickets";
+import NewTicket from "./pages/NewTicket";
 import TicketDetail from "./pages/TicketDetail";
 import KnowledgeBase from "./pages/KnowledgeBase";
 import DocumentDetail from "./pages/DocumentDetail";
@@ -39,28 +40,18 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    console.log('Starting auth effect');
-    
     async function handleSession(session: Session | null) {
-      console.log('Handling session:', { exists: !!session });
-      
       const isAuthed = !!session;
       setIsAuthenticated(isAuthed);
 
       if (isAuthed && session) {
-        console.log('Session user:', session.user.id);
-        console.log('Session:', {
-          accessToken: !!session.access_token,
-          role: session.user.role,
-          email: session.user.email
-        });
+        setIsLoading(false);
       }
       setIsLoading(false);
     }
 
     // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state changed:', { event, sessionExists: !!session });
       handleSession(session);
     });
 
@@ -98,6 +89,7 @@ function App() {
                 <Route element={<WorkspaceLayout />}>
                   <Route path="/dashboard" element={<Index />} />
                   <Route path="/tickets" element={<TicketsPage />} />
+                  <Route path="/tickets/new" element={<NewTicket />} />
                   <Route path="/tickets/:id" element={<TicketDetail />} />
                   <Route path="/knowledge" element={<KnowledgeBase />} />
                   <Route path="/knowledge/:id" element={<DocumentDetail />} />

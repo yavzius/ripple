@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } fr
 import { useForm } from "react-hook-form";
 import { UserPlus, Users, Settings as SettingsIcon } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface UserFormData {
   email: string;
@@ -18,10 +19,21 @@ interface UserFormData {
 
 export default function Settings() {
   const [aiEnabled, setAiEnabled] = useState(true);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
   const [users] = useState([
     { id: 1, name: "Admin User", email: "admin@example.com", role: "Admin" },
     { id: 2, name: "Support Agent", email: "agent@example.com", role: "Agent" },
   ]);
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUserEmail(user.email || "");
+      }
+    };
+    getUser();
+  }, []);
 
   const form = useForm<UserFormData>({
     defaultValues: {
@@ -47,6 +59,10 @@ export default function Settings() {
         <div>
           <h1 className="text-3xl font-bold">Settings</h1>
           <p className="text-muted-foreground">Manage your system settings and preferences</p>
+        </div>
+        <div className="text-right">
+          <p className="text-sm text-muted-foreground">Logged in as</p>
+          <p className="font-medium">{currentUserEmail}</p>
         </div>
       </div>
 
