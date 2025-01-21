@@ -1,310 +1,379 @@
--- Migration to fix workspace-based setup
+# Database Migration: Channel-based Messaging System
 
+## Pre-Migration: Optimize Users Table
+
+```sql
 -- Start Transaction
 BEGIN;
 
--- 0. Create extensions if they don't exist
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- 1. Remove redundant fields from public.users that exist in auth.users
+ALTER TABLE public.users
+    DROP COLUMN IF EXISTS email,  -- Already in auth.users
+    DROP COLUMN IF EXISTS avatar_url;  -- Move to metadata
 
--- 1. Create base tables in correct order
-CREATE TABLE IF NOT EXISTS workspaces (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    slug VARCHAR(255) UNIQUE NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+-- 2. Add metadata field for additional user info
+ALTER TABLE public.users
+    ADD COLUMN metadata JSONB DEFAULT '{}';
 
-CREATE TABLE IF NOT EXISTS organizations (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(255) NOT NULL,
-    domain VARCHAR(255),
-    billing_email VARCHAR(255),
-    subscription_tier VARCHAR(50) DEFAULT 'free',
-    settings JSONB DEFAULT '{}',
-    ai_settings JSONB DEFAULT '{
-        "auto_response": true,
-        "auto_routing": true,
-        "auto_tagging": true,
-        "confidence_threshold": 0.8
-    }',
-    workspace_id UUID REFERENCES workspaces(id),
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    email VARCHAR(255) UNIQUE NOT NULL,
-    full_name VARCHAR(255),
-    avatar_url TEXT,
-    organization_id UUID REFERENCES organizations(id),
-    role VARCHAR(50) NOT NULL DEFAULT 'customer',
-    status VARCHAR(50) DEFAULT 'active',
-    settings JSONB DEFAULT '{}',
-    expertise JSONB DEFAULT '[]',
-    preferences JSONB DEFAULT '{}',
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS workspace_members (
-    workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE,
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    role VARCHAR(50) NOT NULL DEFAULT 'member',
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    PRIMARY KEY (workspace_id, user_id)
-);
-
--- 2. Create or update the auth trigger for new users
+-- 3. Update the handle_new_user trigger
 CREATE OR REPLACE FUNCTION public.handle_new_user() 
 RETURNS TRIGGER AS $$
-DECLARE
-    default_org_id UUID;
-    default_workspace_id UUID;
 BEGIN
-    -- Get or create default workspace
-    INSERT INTO workspaces (name, slug)
-    SELECT 'Default Workspace', 'default'
-    WHERE NOT EXISTS (SELECT 1 FROM workspaces LIMIT 1)
-    RETURNING id INTO default_workspace_id;
-
-    IF default_workspace_id IS NULL THEN
-        SELECT id INTO default_workspace_id FROM workspaces ORDER BY created_at ASC LIMIT 1;
-    END IF;
-
-    -- Get or create default organization
-    INSERT INTO organizations (name, workspace_id)
-    SELECT 'Default Organization', default_workspace_id
-    WHERE NOT EXISTS (SELECT 1 FROM organizations LIMIT 1)
-    RETURNING id INTO default_org_id;
-
-    IF default_org_id IS NULL THEN
-        SELECT id INTO default_org_id FROM organizations ORDER BY created_at ASC LIMIT 1;
-    END IF;
-
-    -- Create user
-    INSERT INTO public.users (id, email, full_name, avatar_url, organization_id)
+    INSERT INTO public.users (
+        id,
+        full_name,
+        metadata,
+        organization_id
+    )
     VALUES (
         NEW.id,
-        NEW.email,
         NEW.raw_user_meta_data->>'full_name',
-        NEW.raw_user_meta_data->>'avatar_url',
-        default_org_id
-    )
-    ON CONFLICT (id) DO UPDATE
-    SET 
-        email = EXCLUDED.email,
-        full_name = EXCLUDED.full_name,
-        avatar_url = EXCLUDED.avatar_url,
-        updated_at = NOW();
-
-    -- Add user to workspace
-    INSERT INTO workspace_members (workspace_id, user_id, role)
-    VALUES (default_workspace_id, NEW.id, 'member')
-    ON CONFLICT (workspace_id, user_id) DO NOTHING;
-
+        jsonb_build_object(
+            'avatar_url', NEW.raw_user_meta_data->>'avatar_url',
+            'email', NEW.email
+        ),
+        NEW.raw_user_meta_data->>'organization_id'
+    );
     RETURN NEW;
 END;
 $$ language 'plpgsql' SECURITY DEFINER;
 
--- Ensure the trigger is set up
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-    AFTER INSERT ON auth.users
-    FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+COMMIT;
+```
 
--- 3. Create default workspace if none exists
-DO $$ 
-DECLARE
-    default_workspace_id UUID;
+## Migration Steps
+
+```sql
+-- Start Transaction
+BEGIN;
+
+-- 1. Create Channels Table (MVP)
+CREATE TABLE public.channels (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    workspace_id UUID REFERENCES public.workspaces(id),
+    name TEXT NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('chat', 'email')),
+    config JSONB DEFAULT '{}',
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE public.channels ENABLE ROW LEVEL SECURITY;
+
+-- Add index for faster lookups
+CREATE INDEX idx_channels_workspace ON public.channels(workspace_id);
+CREATE INDEX idx_channels_type ON public.channels(type);
+
+-- Create function to handle new workspace creation
+CREATE OR REPLACE FUNCTION public.handle_workspace_channels() 
+RETURNS TRIGGER AS $$
 BEGIN
-    -- Create default workspace if it doesn't exist
-    INSERT INTO workspaces (name, slug)
-    SELECT 'Default Workspace', 'default'
-    WHERE NOT EXISTS (SELECT 1 FROM workspaces LIMIT 1)
-    RETURNING id INTO default_workspace_id;
+    -- Create chat channel
+    INSERT INTO public.channels (workspace_id, name, type, config)
+    VALUES (
+        NEW.id,
+        NEW.name || ' Chat',
+        'chat',
+        jsonb_build_object(
+            'description', 'Default chat channel for ' || NEW.name,
+            'auto_archive_days', 30
+        )
+    );
 
-    -- Get the default workspace ID if we didn't create one
-    IF default_workspace_id IS NULL THEN
-        SELECT id INTO default_workspace_id FROM workspaces ORDER BY created_at ASC LIMIT 1;
+    -- Create email channel
+    INSERT INTO public.channels (workspace_id, name, type, config)
+    VALUES (
+        NEW.id,
+        NEW.name || ' Email',
+        'email',
+        jsonb_build_object(
+            'description', 'Default email channel for ' || NEW.name,
+            'auto_archive_days', 90,
+            'email_settings', jsonb_build_object(
+                'forward_to', array[]::text[],
+                'auto_reply_enabled', false
+            )
+        )
+    );
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create trigger for new workspace creation
+DROP TRIGGER IF EXISTS on_workspace_created ON public.workspaces;
+CREATE TRIGGER on_workspace_created
+    AFTER INSERT ON public.workspaces
+    FOR EACH ROW
+    EXECUTE FUNCTION public.handle_workspace_channels();
+
+-- 2. Modify Messages Table
+ALTER TABLE public.messages 
+    DROP CONSTRAINT IF EXISTS messages_ticket_id_fkey,
+    ADD COLUMN channel_id UUID REFERENCES public.channels(id),
+    ADD COLUMN metadata JSONB DEFAULT '{}';
+
+-- Add index for channel lookups
+CREATE INDEX idx_messages_channel ON public.messages(channel_id);
+
+-- 3. Update RLS Policies
+
+-- Channel policies
+CREATE POLICY "Enable read access for workspace members" ON public.channels
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM public.workspace_members 
+            WHERE workspace_members.user_id = auth.uid() 
+            AND workspace_members.workspace_id = channels.workspace_id
+        )
+    );
+
+CREATE POLICY "Enable insert for workspace admins" ON public.channels
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.workspace_members 
+            WHERE workspace_members.user_id = auth.uid() 
+            AND workspace_members.workspace_id = NEW.workspace_id 
+            AND workspace_members.role = 'admin'
+        )
+    );
+
+CREATE POLICY "Enable update for workspace admins" ON public.channels
+    FOR UPDATE USING (
+        EXISTS (
+            SELECT 1 FROM public.workspace_members 
+            WHERE workspace_members.user_id = auth.uid() 
+            AND workspace_members.workspace_id = channels.workspace_id 
+            AND workspace_members.role = 'admin'
+        )
+    );
+
+-- Update message policies
+DROP POLICY IF EXISTS "messages_access_policy" ON public.messages;
+
+CREATE POLICY "Enable read access for workspace members" ON public.messages
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM public.workspace_members 
+            JOIN public.channels ON channels.workspace_id = workspace_members.workspace_id
+            WHERE workspace_members.user_id = auth.uid() 
+            AND channels.id = messages.channel_id
+        )
+    );
+
+CREATE POLICY "Enable insert for workspace members" ON public.messages
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.workspace_members 
+            JOIN public.channels ON channels.workspace_id = workspace_members.workspace_id
+            WHERE workspace_members.user_id = auth.uid() 
+            AND channels.id = NEW.channel_id
+        )
+    );
+
+-- 4. Data Migration Function
+CREATE OR REPLACE FUNCTION public.migrate_existing_messages()
+RETURNS void AS $$
+DECLARE
+    default_channel_id UUID;
+    workspace_record RECORD;
+BEGIN
+    FOR workspace_record IN SELECT id, name FROM public.workspaces LOOP
+        -- Create default channel
+        INSERT INTO public.channels (workspace_id, name)
+        VALUES (workspace_record.id, workspace_record.name || ' General')
+        RETURNING id INTO default_channel_id;
+
+        -- Update existing messages
+        UPDATE public.messages m
+        SET channel_id = default_channel_id
+        FROM public.organizations o
+        WHERE m.organization_id = o.id 
+        AND o.workspace_id = workspace_record.id;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Grant execute permission to authenticated users
+GRANT EXECUTE ON FUNCTION public.migrate_existing_messages TO authenticated;
+
+-- 5. Add Performance Indexes
+CREATE INDEX idx_messages_created_at ON public.messages(created_at DESC);
+CREATE INDEX idx_channels_active ON public.channels(is_active);
+
+-- 6. Enable Realtime
+BEGIN;
+  -- Check if publication exists
+  DO $$
+  BEGIN
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime'
+    ) THEN
+      CREATE PUBLICATION supabase_realtime;
     END IF;
+  END $$;
 
-    -- Update organizations without a workspace
-    UPDATE organizations 
-    SET workspace_id = default_workspace_id
-    WHERE workspace_id IS NULL;
-END $$;
+  -- Add table to publication
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.channels;
+COMMIT;
 
--- 4. Sync auth users with public users
-INSERT INTO public.users (id, email, full_name)
-SELECT 
-    au.id,
-    au.email,
-    au.raw_user_meta_data->>'full_name'
-FROM auth.users au
-LEFT JOIN public.users pu ON au.id = pu.id
-WHERE pu.id IS NULL
-ON CONFLICT (id) DO NOTHING;
-
--- 5. Add all existing users to their organization's workspace
-INSERT INTO workspace_members (workspace_id, user_id, role)
-SELECT DISTINCT o.workspace_id, u.id, 
-    CASE 
-        WHEN u.role = 'admin' THEN 'admin'
-        WHEN u.role = 'agent' THEN 'member'
-        ELSE 'member'
-    END as role
-FROM users u
-JOIN organizations o ON u.organization_id = o.id
-WHERE o.workspace_id IS NOT NULL
-    AND EXISTS (SELECT 1 FROM auth.users au WHERE au.id = u.id)
-ON CONFLICT (workspace_id, user_id) DO NOTHING;
-
--- 6. Update RLS policies
-
--- First drop all existing policies to start clean
-DROP POLICY IF EXISTS "Workspaces are viewable by members" ON workspaces;
-DROP POLICY IF EXISTS "Organizations are viewable by workspace members" ON organizations;
-DROP POLICY IF EXISTS "Organizations are insertable by workspace admins" ON organizations;
-DROP POLICY IF EXISTS "Users are viewable by workspace members" ON users;
-DROP POLICY IF EXISTS "Tickets are viewable by workspace members" ON tickets;
-DROP POLICY IF EXISTS "Tickets are creatable by workspace members" ON tickets;
-DROP POLICY IF EXISTS "Workspace members are viewable" ON workspace_members;
-
--- Enable RLS on all tables
-ALTER TABLE workspaces ENABLE ROW LEVEL SECURITY;
-ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE workspace_members ENABLE ROW LEVEL SECURITY;
-ALTER TABLE tickets ENABLE ROW LEVEL SECURITY;
-
--- Workspace members policy (base policy that others will reference)
-CREATE POLICY "Workspace members are viewable" ON workspace_members
-    FOR SELECT USING (
-        user_id = auth.uid() OR
-        workspace_id IN (
-            SELECT workspace_id FROM workspace_members 
-            WHERE user_id = auth.uid()
-        )
-    );
-
--- Workspace policies
-CREATE POLICY "Workspaces are viewable by members" ON workspaces
-    FOR SELECT USING (
-        id IN (
-            SELECT workspace_id FROM workspace_members 
-            WHERE user_id = auth.uid()
-        )
-    );
-
--- Organization policies
-CREATE POLICY "Organizations are viewable by workspace members" ON organizations
-    FOR SELECT USING (
-        workspace_id IN (
-            SELECT workspace_id FROM workspace_members 
-            WHERE user_id = auth.uid()
-        )
-    );
-
-CREATE POLICY "Organizations are insertable by workspace admins" ON organizations
-    FOR INSERT TO public
-    WITH CHECK (
-        workspace_id IN (
-            SELECT workspace_id FROM workspace_members 
-            WHERE user_id = auth.uid()
-            AND role = 'admin'
-        )
-    );
-
--- User policies
-CREATE POLICY "Users are viewable by workspace members" ON users
-    FOR SELECT USING (
-        id = auth.uid() OR -- Can always see themselves
-        id IN ( -- Can see other members in their workspaces
-            SELECT user_id FROM workspace_members wm
-            WHERE workspace_id IN (
-                SELECT workspace_id FROM workspace_members
-                WHERE user_id = auth.uid()
-            )
-        )
-    );
-
--- Ticket policies
-CREATE POLICY "Tickets are viewable by workspace members" ON tickets
-    FOR SELECT USING (
-        customer_id = auth.uid() OR -- Can see their own tickets
-        assignee_id = auth.uid() OR -- Can see tickets assigned to them
-        organization_id IN ( -- Can see tickets in their workspace organizations
-            SELECT id FROM organizations
-            WHERE workspace_id IN (
-                SELECT workspace_id FROM workspace_members
-                WHERE user_id = auth.uid()
-            )
-        )
-    );
-
-CREATE POLICY "Tickets are creatable by workspace members" ON tickets
-    FOR INSERT TO public
-    WITH CHECK (
-        auth.role() = 'authenticated' AND (
-            customer_id = auth.uid() OR -- Can create tickets for themselves
-            organization_id IN ( -- Can create tickets for their workspace organizations
-                SELECT o.id FROM organizations o
-                JOIN workspace_members wm ON wm.workspace_id = o.workspace_id
-                WHERE wm.user_id = auth.uid()
-            )
-        )
-    );
-
--- Add update policies
-CREATE POLICY "Tickets are updatable by workspace members" ON tickets
-    FOR UPDATE USING (
-        customer_id = auth.uid() OR -- Can update their own tickets
-        assignee_id = auth.uid() OR -- Can update tickets assigned to them
-        organization_id IN ( -- Can update tickets in their workspace organizations
-            SELECT id FROM organizations
-            WHERE workspace_id IN (
-                SELECT workspace_id FROM workspace_members
-                WHERE user_id = auth.uid()
-                AND role IN ('admin', 'member') -- Only admins and members can update
-            )
-        )
-    );
-
-CREATE POLICY "Organizations are updatable by workspace admins" ON organizations
-    FOR UPDATE USING (
-        workspace_id IN (
-            SELECT workspace_id FROM workspace_members
-            WHERE user_id = auth.uid()
-            AND role = 'admin'
-        )
-    );
-
-CREATE POLICY "Users can update themselves" ON users
-    FOR UPDATE USING (
-        id = auth.uid()
-    );
-
--- Create indexes for performance
-CREATE INDEX IF NOT EXISTS idx_workspace_members_user ON workspace_members(user_id);
-CREATE INDEX IF NOT EXISTS idx_workspace_members_workspace ON workspace_members(workspace_id);
-CREATE INDEX IF NOT EXISTS idx_organizations_workspace ON organizations(workspace_id);
-CREATE INDEX IF NOT EXISTS idx_users_organization ON users(organization_id);
-CREATE INDEX IF NOT EXISTS idx_tickets_organization ON tickets(organization_id);
-CREATE INDEX IF NOT EXISTS idx_tickets_customer ON tickets(customer_id);
-CREATE INDEX IF NOT EXISTS idx_tickets_assignee ON tickets(assignee_id);
+-- 7. Add Updated At Trigger
+CREATE TRIGGER update_channels_updated_at
+    BEFORE UPDATE ON public.channels
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
 
 COMMIT;
 
--- Verification queries (run these after the migration)
+-- Run Verification
+DO $$ 
+BEGIN
+    -- Check if tables exist
+    ASSERT EXISTS(
+        SELECT FROM pg_tables 
+        WHERE schemaname = 'public' 
+        AND tablename = 'channels'
+    ), 'Tables not created properly';
+
+    -- Check if RLS is enabled
+    ASSERT EXISTS(
+        SELECT FROM pg_tables 
+        WHERE schemaname = 'public' 
+        AND tablename = 'channels' 
+        AND rowsecurity = true
+    ), 'RLS not enabled on channels';
+
+    -- Check if policies exist
+    ASSERT EXISTS(
+        SELECT FROM pg_policies 
+        WHERE schemaname = 'public' 
+        AND tablename = 'channels'
+    ), 'Policies not created properly';
+
+    -- Check if realtime is enabled
+    ASSERT EXISTS(
+        SELECT 1 FROM pg_publication_tables 
+        WHERE tablename = 'channels' 
+        AND pubname = 'supabase_realtime'
+    ), 'Realtime not configured properly';
+
+    -- Check if trigger exists
+    ASSERT EXISTS(
+        SELECT 1 FROM pg_trigger 
+        WHERE tgname = 'on_workspace_created'
+    ), 'Workspace trigger not created properly';
+
+    -- Check if both channel types exist for each workspace
+    ASSERT NOT EXISTS(
+        SELECT workspace_id 
+        FROM public.workspaces w
+        WHERE NOT EXISTS (
+            SELECT 1 FROM public.channels 
+            WHERE workspace_id = w.id 
+            AND type = 'chat'
+        )
+        OR NOT EXISTS (
+            SELECT 1 FROM public.channels 
+            WHERE workspace_id = w.id 
+            AND type = 'email'
+        )
+    ), 'Default channels not created for all workspaces';
+
+    RAISE NOTICE 'All checks passed successfully';
+END $$;
+```
+
+## Rollback Plan
+
+```sql
+BEGIN;
+
+-- Disable realtime
+ALTER PUBLICATION supabase_realtime DROP TABLE IF EXISTS public.channels;
+
+-- Drop triggers
+DROP TRIGGER IF EXISTS update_channels_updated_at ON public.channels;
+
+-- Drop indexes
+DROP INDEX IF EXISTS public.idx_messages_created_at;
+DROP INDEX IF EXISTS public.idx_channels_active;
+DROP INDEX IF EXISTS public.idx_channels_workspace;
+DROP INDEX IF EXISTS public.idx_channels_type;
+DROP INDEX IF EXISTS public.idx_messages_channel;
+
+-- Drop function
+DROP FUNCTION IF EXISTS public.migrate_existing_messages();
+
+-- Drop policies (they will be dropped automatically with tables, but just to be explicit)
+DROP POLICY IF EXISTS "Enable read access for workspace members" ON public.channels;
+DROP POLICY IF EXISTS "Enable insert for workspace admins" ON public.channels;
+DROP POLICY IF EXISTS "Enable update for workspace admins" ON public.channels;
+DROP POLICY IF EXISTS "Enable read access for workspace members" ON public.messages;
+DROP POLICY IF EXISTS "Enable insert for workspace members" ON public.messages;
+
+-- Drop tables and columns
+DROP TABLE IF EXISTS public.channels CASCADE;
+
+ALTER TABLE public.messages 
+    DROP COLUMN IF EXISTS channel_id,
+    DROP COLUMN IF EXISTS metadata;
+
+-- Add to rollback
+DROP TRIGGER IF EXISTS on_workspace_created ON public.workspaces;
+DROP FUNCTION IF EXISTS public.handle_workspace_channels();
+
+COMMIT;
+```
+
+## Post-Migration Steps
+
+1. Run the migration function:
+```sql
+SELECT public.migrate_existing_messages();
+```
+
+2. Verify data migration:
+```sql
+-- Check if all messages have been assigned to channels
+SELECT COUNT(*) as messages_without_channel 
+FROM public.messages 
+WHERE channel_id IS NULL;
+
+-- Check channel creation
 SELECT 
-    (SELECT COUNT(*) FROM workspaces) as workspace_count,
-    (SELECT COUNT(*) FROM organizations WHERE workspace_id IS NULL) as orgs_without_workspace,
-    (SELECT COUNT(*) FROM users) as total_users,
-    (SELECT COUNT(*) FROM workspace_members) as workspace_members_count,
-    (SELECT COUNT(*) FROM auth.users) as auth_users_count,
-    (SELECT COUNT(*) FROM users u WHERE NOT EXISTS (
-        SELECT 1 FROM auth.users au WHERE au.id = u.id
-    )) as orphaned_users;
+    w.name as workspace_name,
+    c.name as channel_name,
+    c.is_active,
+    COUNT(m.id) as message_count
+FROM public.workspaces w
+JOIN public.channels c ON c.workspace_id = w.id
+LEFT JOIN public.messages m ON m.channel_id = c.id
+GROUP BY w.name, c.name, c.is_active;
+
+-- Verify RLS
+SELECT tablename, rowsecurity 
+FROM pg_tables 
+WHERE schemaname = 'public' 
+AND tablename = 'channels';
+
+-- Verify realtime
+SELECT * FROM pg_publication_tables 
+WHERE pubname = 'supabase_realtime' 
+AND tablename = 'channels';
+```
+
+-- Add to verification queries:
+```sql
+-- Verify default channels
+SELECT 
+    w.name as workspace_name,
+    COUNT(CASE WHEN c.type = 'chat' THEN 1 END) as chat_channels,
+    COUNT(CASE WHEN c.type = 'email' THEN 1 END) as email_channels
+FROM public.workspaces w
+LEFT JOIN public.channels c ON c.workspace_id = w.id
+GROUP BY w.name
+HAVING COUNT(CASE WHEN c.type = 'chat' THEN 1 END) = 0
+    OR COUNT(CASE WHEN c.type = 'email' THEN 1 END) = 0;
+```

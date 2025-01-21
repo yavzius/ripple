@@ -16,11 +16,12 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Loader2, Ticket, TicketCheck, TicketX } from "lucide-react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { useTickets, updateTicket } from "@/lib/actions";
 import { useEffect, useState } from "react";
 import type { Database } from "@/integrations/supabase/types";
 import { format } from "date-fns";
+
 
 interface UserBasicInfo {
   id: string;
@@ -40,6 +41,7 @@ interface TicketWithRelations extends Omit<TicketRow, 'customer_id' | 'assignee_
 const ITEMS_PER_PAGE = 10;
 
 const TicketsPage = () => {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const page = parseInt(searchParams.get("page") || "1");
   const { data: tickets = [], isLoading, error } = useTickets();
@@ -77,14 +79,10 @@ const TicketsPage = () => {
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <h2 className="text-2xl font-semibold tracking-tight">Tickets</h2>
-          <p className="text-sm text-muted-foreground">
-            Manage and monitor support tickets
-          </p>
         </div>
-        <Button className="gap-2" asChild>
+        <Button size="sm" asChild>
           <Link to="/tickets/new">
-            <Ticket className="h-4 w-4" />
-            New Ticket
+            Create Ticket
           </Link>
         </Button>
       </div>
@@ -100,13 +98,12 @@ const TicketsPage = () => {
               <TableHead>Created</TableHead>
               <TableHead>Customer</TableHead>
               <TableHead>Assignee</TableHead>
-              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center">
+                <TableCell colSpan={7} className="h-24 text-center">
                   <div className="flex items-center justify-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Loading tickets...
@@ -115,22 +112,23 @@ const TicketsPage = () => {
               </TableRow>
             ) : paginatedTickets.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center">
+                <TableCell colSpan={7} className="h-24 text-center">
                   No tickets found
                 </TableCell>
               </TableRow>
             ) : (
               paginatedTickets.map((ticket) => (
-                <TableRow key={ticket.id}>
+                <TableRow 
+                  key={ticket.id}
+                  className="group hover:bg-muted/50 cursor-pointer"
+                  onClick={() => navigate(`/tickets/${ticket.id}`)}
+                >
                   <TableCell className="font-medium">
-                    <Link
-                      to={`/tickets/${ticket.id}`}
-                      className="text-primary hover:underline"
-                    >
-                      {ticket.ticket_number}
-                    </Link>
+                    {ticket.ticket_number}
                   </TableCell>
-                  <TableCell>{ticket.subject}</TableCell>
+                  <TableCell>
+                    {ticket.subject}
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <span
@@ -166,26 +164,6 @@ const TicketsPage = () => {
                   </TableCell>
                   <TableCell>
                     {ticket.assignee?.full_name || ticket.assignee?.email || "Unassigned"}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleStatusChange(ticket.id, "closed")}
-                        disabled={ticket.status === "closed"}
-                      >
-                        <TicketCheck className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleStatusChange(ticket.id, "open")}
-                        disabled={ticket.status === "open"}
-                      >
-                        <TicketX className="h-4 w-4" />
-                      </Button>
-                    </div>
                   </TableCell>
                 </TableRow>
               ))

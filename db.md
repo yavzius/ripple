@@ -603,3 +603,158 @@ EXISTS (
 
 -- Essential Indexes for Performance
 CREATE INDEX idx_organizations_workspace ON organizations(workspace_id);
+
+-- Migration: Convert to Channel-based Messaging System
+-- Start Transaction
+BEGIN;
+
+-- 1. Create Channels Table (MVP)
+CREATE TABLE channels (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID REFERENCES organizations(id),
+    name TEXT NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('live_chat')), -- MVP: Start with just live chat
+    config JSONB DEFAULT '{}',
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Add index for faster lookups
+CREATE INDEX idx_channels_org ON channels(organization_id);
+
+-- 2. Modify Messages Table
+ALTER TABLE messages 
+    DROP CONSTRAINT IF EXISTS messages_ticket_id_fkey,
+    ADD COLUMN channel_id UUID REFERENCES channels(id),
+    ADD COLUMN thread_id UUID, -- For future threading support
+    ADD COLUMN metadata JSONB DEFAULT '{}';
+
+-- Add index for channel lookups
+CREATE INDEX idx_messages_channel ON messages(channel_id);
+CREATE INDEX idx_messages_thread ON messages(thread_id);
+
+-- 3. Create Thread Table (Optional for MVP, but good for future)
+CREATE TABLE threads (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID REFERENCES organizations(id),
+    channel_id UUID REFERENCES channels(id),
+    subject TEXT,
+    status TEXT DEFAULT 'open',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 4. Update RLS Policies
+
+-- Channel policies
+CREATE POLICY "Channels are viewable by organization members" ON channels
+    FOR SELECT USING (
+        organization_id IN (
+            SELECT organization_id FROM users WHERE id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Channels are manageable by admins" ON channels
+    FOR ALL USING (
+        EXISTS (
+            SELECT 1 FROM users 
+            WHERE id = auth.uid() 
+            AND organization_id = channels.organization_id 
+            AND role = 'admin'
+        )
+    );
+
+-- Update message policies
+DROP POLICY IF EXISTS messages_access_policy ON messages;
+
+CREATE POLICY "Messages are viewable by organization members" ON messages
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM users 
+            WHERE id = auth.uid() 
+            AND organization_id IN (
+                SELECT organization_id FROM channels WHERE id = messages.channel_id
+            )
+        )
+    );
+
+CREATE POLICY "Messages are insertable by organization members" ON messages
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM users 
+            WHERE id = auth.uid() 
+            AND organization_id IN (
+                SELECT organization_id FROM channels WHERE id = messages.channel_id
+            )
+        )
+    );
+
+-- 5. Data Migration Function (if needed)
+CREATE OR REPLACE FUNCTION migrate_existing_messages()
+RETURNS void AS $$
+DECLARE
+    default_channel_id UUID;
+BEGIN
+    -- For each organization, create a default channel
+    FOR org_id IN SELECT id FROM organizations LOOP
+        INSERT INTO channels (organization_id, name, type)
+        VALUES (org_id, 'General', 'live_chat')
+        RETURNING id INTO default_channel_id;
+
+        -- Update existing messages for this organization
+        UPDATE messages
+        SET channel_id = default_channel_id
+        WHERE organization_id = org_id;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 6. Indexes for Performance
+CREATE INDEX idx_messages_created_at ON messages(created_at);
+CREATE INDEX idx_channels_type ON channels(type);
+CREATE INDEX idx_threads_channel ON threads(channel_id);
+
+-- 7. Enable Realtime
+ALTER PUBLICATION supabase_realtime ADD TABLE channels;
+ALTER PUBLICATION supabase_realtime ADD TABLE threads;
+
+-- Future Expansion Commented Out (Add when needed):
+/*
+-- Add more channel types
+ALTER TABLE channels 
+    DROP CONSTRAINT channels_type_check,
+    ADD CONSTRAINT channels_type_check 
+    CHECK (type IN ('live_chat', 'email', 'slack', 'whatsapp'));
+
+-- Add channel specific configurations
+ALTER TABLE channels
+    ADD COLUMN integration_config JSONB DEFAULT '{}',
+    ADD COLUMN webhook_url TEXT,
+    ADD COLUMN api_keys JSONB DEFAULT '{}';
+*/
+
+COMMIT;
+
+-- Verification Queries
+SELECT 'Database migration completed successfully' as status;
+
+-- Check if tables were created
+SELECT EXISTS (
+    SELECT FROM pg_tables 
+    WHERE schemaname = 'public' 
+    AND tablename IN ('channels', 'threads')
+) as "New Tables Created";
+
+-- Check if indexes exist
+SELECT EXISTS (
+    SELECT FROM pg_indexes 
+    WHERE tablename = 'channels' 
+    AND indexname = 'idx_channels_org'
+) as "Indexes Created";
+
+-- Check if policies exist
+SELECT EXISTS (
+    SELECT FROM pg_policies 
+    WHERE tablename = 'channels'
+) as "Policies Created";

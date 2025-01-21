@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { MessageCircle, TicketCheck, TicketX, Clock, Loader2, User } from "lucide-react";
+import { MessageCircle, TicketCheck, TicketX, Clock, Loader2, User, ArrowLeft } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTicketWithMessages, useCreateMessage, updateTicket } from "@/lib/actions";
 import { useForm } from "react-hook-form";
@@ -137,26 +137,38 @@ const TicketDetail = () => {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h2 className="text-2xl font-semibold tracking-tight">
-            Ticket {ticket.ticket_number}
-          </h2>
-          <p className="text-sm text-muted-foreground">{ticket.subject}</p>
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => navigate("/tickets")}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="space-y-1">
+            <h2 className="text-2xl font-semibold tracking-tight">
+              Ticket {ticket.ticket_number}
+            </h2>
+            <p className="text-sm text-muted-foreground">{ticket.subject}</p>
+          </div>
         </div>
         <div className="flex gap-2">
           <Button
             variant="outline"
+            size="sm"
             className="gap-2"
             onClick={() => handleStatusChange("closed")}
             disabled={ticket.status === "closed"}
           >
             <TicketCheck className="h-4 w-4" />
-            Resolve
+            Mark as Resolved
           </Button>
           <Button
             variant="outline"
+            size="sm"
             className="gap-2"
             onClick={() => handleStatusChange("open")}
             disabled={ticket.status === "open"}
@@ -167,144 +179,146 @@ const TicketDetail = () => {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Details</CardTitle>
-            <CardDescription>Ticket information and status</CardDescription>
+      <div className="grid gap-6 md:grid-cols-[1fr,400px]">
+        <Card className="border rounded-md">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <div>
+              <CardTitle>Messages</CardTitle>
+              <CardDescription>Conversation history</CardDescription>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Status</span>
-              <span
-                className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                  ticket.status === "open"
-                    ? "bg-green-100 text-green-700"
-                    : "bg-gray-100 text-gray-700"
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex flex-col gap-2 rounded-lg p-4 ${
+                  message.is_ai_generated
+                    ? "bg-muted ml-8"
+                    : "bg-primary/5 mr-8"
                 }`}
               >
-                {ticket.status}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Priority</span>
-              <span
-                className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                  ticket.priority === "high"
-                    ? "bg-red-100 text-red-700"
-                    : ticket.priority === "medium"
-                    ? "bg-yellow-100 text-yellow-700"
-                    : "bg-green-100 text-green-700"
-                }`}
-              >
-                {ticket.priority}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Created</span>
-              <span className="text-sm text-muted-foreground flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                {format(new Date(ticket.created_at), "MMM d, yyyy")}
-              </span>
-            </div>
-            <Separator />
-            <div className="space-y-4">
-              <div>
-                <span className="text-sm font-medium">Customer</span>
-                <div className="flex items-center gap-2 mt-1">
-                  <Avatar className="h-6 w-6">
-                    <AvatarImage src={ticket.customer?.avatar_url || undefined} />
-                    <AvatarFallback>
-                      <User className="h-4 w-4" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-sm text-muted-foreground">
-                    {ticket.customer?.full_name || ticket.customer?.email || "Unknown"}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Avatar className="h-6 w-6">
+                      <AvatarImage src={message.sender?.avatar_url || undefined} />
+                      <AvatarFallback>
+                        <User className="h-4 w-4" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="font-medium">
+                      {message.is_ai_generated 
+                        ? "AI Agent" 
+                        : message.sender?.full_name || message.sender?.email || "Unknown"}
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {format(new Date(message.created_at), "MMM d, yyyy h:mm a")}
                   </span>
                 </div>
+                <p className="text-sm">{message.content}</p>
               </div>
-              <div>
-                <span className="text-sm font-medium">Assignee</span>
-                <div className="flex items-center gap-2 mt-1">
-                  <Avatar className="h-6 w-6">
-                    <AvatarImage src={ticket.assignee?.avatar_url || undefined} />
-                    <AvatarFallback>
-                      <User className="h-4 w-4" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-sm text-muted-foreground">
-                    {ticket.assignee?.full_name || ticket.assignee?.email || "Unassigned"}
-                  </span>
-                </div>
-              </div>
-            </div>
+            ))}
+
+            <form onSubmit={handleSubmit(onSubmitReply)} className="space-y-4 pt-4">
+              <Textarea
+                placeholder="Type your reply..."
+                {...register("content", { required: true })}
+              />
+              <Button type="submit" size="sm" className="gap-2">
+                <MessageCircle className="h-4 w-4" />
+                Send Reply
+              </Button>
+            </form>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Description</CardTitle>
-            <CardDescription>Ticket description and details</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              {ticket.description || "No description provided"}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Messages</CardTitle>
-            <CardDescription>Conversation history</CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex flex-col gap-2 rounded-lg p-4 ${
-                message.is_ai_generated
-                  ? "bg-muted ml-8"
-                  : "bg-primary/5 mr-8"
-              }`}
-            >
+        <div className="space-y-6">
+          <Card className="border rounded-md">
+            <CardHeader className="pb-3">
+              <CardTitle>Details</CardTitle>
+              <CardDescription>Ticket information and status</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Avatar className="h-6 w-6">
-                    <AvatarImage src={message.sender?.avatar_url || undefined} />
-                    <AvatarFallback>
-                      <User className="h-4 w-4" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="font-medium">
-                    {message.is_ai_generated 
-                      ? "AI Agent" 
-                      : message.sender?.full_name || message.sender?.email || "Unknown"}
-                  </span>
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  {format(new Date(message.created_at), "MMM d, yyyy h:mm a")}
+                <span className="text-sm font-medium">Status</span>
+                <span
+                  className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                    ticket.status === "open"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-gray-100 text-gray-700"
+                  }`}
+                >
+                  {ticket.status}
                 </span>
               </div>
-              <p className="text-sm">{message.content}</p>
-            </div>
-          ))}
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Priority</span>
+                <span
+                  className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                    ticket.priority === "high"
+                      ? "bg-red-100 text-red-700"
+                      : ticket.priority === "medium"
+                      ? "bg-yellow-100 text-yellow-700"
+                      : "bg-green-100 text-green-700"
+                  }`}
+                >
+                  {ticket.priority}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Created</span>
+                <span className="text-sm text-muted-foreground flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {format(new Date(ticket.created_at), "MMM d, yyyy")}
+                </span>
+              </div>
+              <Separator />
+              <div className="space-y-4">
+                <div>
+                  <span className="text-sm font-medium">Customer</span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Avatar className="h-6 w-6">
+                      <AvatarImage src={ticket.customer?.avatar_url || undefined} />
+                      <AvatarFallback>
+                        <User className="h-4 w-4" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm text-muted-foreground">
+                      {ticket.customer?.full_name || ticket.customer?.email || "Unknown"}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <span className="text-sm font-medium">Assignee</span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Avatar className="h-6 w-6">
+                      <AvatarImage src={ticket.assignee?.avatar_url || undefined} />
+                      <AvatarFallback>
+                        <User className="h-4 w-4" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm text-muted-foreground">
+                      {ticket.assignee?.full_name || ticket.assignee?.email || "Unassigned"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          <form onSubmit={handleSubmit(onSubmitReply)} className="space-y-4 pt-4">
-            <Textarea
-              placeholder="Type your reply..."
-              {...register("content", { required: true })}
-            />
-            <Button type="submit" className="gap-2">
-              <MessageCircle className="h-4 w-4" />
-              Send Reply
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+          <Card className="border rounded-md">
+            <CardHeader className="pb-3">
+              <CardTitle>Description</CardTitle>
+              <CardDescription>Ticket description and details</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                {ticket.description || "No description provided"}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };

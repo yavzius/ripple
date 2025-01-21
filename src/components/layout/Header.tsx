@@ -32,7 +32,7 @@ export const Header = ({ isCollapsed, onToggleSidebar }: HeaderProps) => {
             )}
           </Button>
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-semibold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+            <h1 className="text-lg font-bold bg-gradient-to-r from-purple-600 via-blue-500 to-purple-400 bg-clip-text text-transparent tracking-tight hover:scale-105 transition-transform duration-200 cursor-default select-none animate-gradient-x">
               ShoreTide
             </h1>
             <span className="text-sm text-muted-foreground">

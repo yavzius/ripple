@@ -22,8 +22,13 @@ import CustomerPortal from "./pages/CustomerPortal";
 import ChatbotPortal from "./pages/ChatbotPortal";
 import WorkspaceLayout from "./components/layout/WorkspaceLayout";
 import Auth from "./pages/Auth";
-import CRM from "./pages/CRM";
+import CRM from "./pages/Companies";
 import { Skeleton } from "@/components/ui/skeleton";
+import Customers from "./pages/Companies";
+import NewCustomerCompany from "./pages/NewCustomerCompany";
+import CustomerDetail from "./pages/CompanyDetail";
+import Companies from "./pages/Companies";
+import CompanyDetail from "./pages/CompanyDetail";
 
 const InitialLoadingState = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -99,21 +104,23 @@ function App() {
                 <Route path="/tickets" element={<TicketsPage />} />
                 <Route path="/tickets/new" element={<NewTicket />} />
                 <Route path="/tickets/:id" element={<TicketDetail />} />
-                <Route path="/knowledge" element={<KnowledgeBase />} />
-                <Route path="/knowledge/:id" element={<DocumentDetail />} />
+                <Route path="/knowledge-base" element={<KnowledgeBase />} />
+                <Route path="/knowledge-base/:id" element={<DocumentDetail />} />
                 <Route path="/training" element={<Training />} />
-                <Route path="/training/:id" element={<TrainingCardDetail />} />
+                <Route path="/training/cards/:id" element={<TrainingCardDetail />} />
                 <Route path="/training/session" element={<TrainingSession />} />
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/updates" element={<Updates />} />
                 <Route path="/settings" element={<Settings />} />
-                <Route path="/crm" element={<CRM />} />
+                <Route path="/companies" element={<Companies />} />
+                <Route path="/companies/new" element={<NewCustomerCompany />} />
+                <Route path="/companies/:id" element={<CompanyDetail />} />
               </Route>
             </>
           )}
         </Routes>
+        <Sonner />
       </BrowserRouter>
-      <Sonner />
     </TooltipProvider>
   );
 }

@@ -34,7 +34,60 @@ export type Database = {
   }
   public: {
     Tables: {
-      ai_interactions: {
+      account_users: {
+        Row: {
+          account_id: string
+          created_at: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_members_workspace_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accounts: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_records: {
         Row: {
           confidence_score: number | null
           created_at: string | null
@@ -42,7 +95,6 @@ export type Database = {
           id: string
           interaction_type: string
           metadata: Json | null
-          organization_id: string | null
           prompt: string | null
           response: string | null
           ticket_id: string | null
@@ -55,7 +107,6 @@ export type Database = {
           id?: string
           interaction_type: string
           metadata?: Json | null
-          organization_id?: string | null
           prompt?: string | null
           response?: string | null
           ticket_id?: string | null
@@ -68,7 +119,6 @@ export type Database = {
           id?: string
           interaction_type?: string
           metadata?: Json | null
-          organization_id?: string | null
           prompt?: string | null
           response?: string | null
           ticket_id?: string | null
@@ -76,17 +126,86 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "ai_interactions_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "ai_interactions_ticket_id_fkey"
             columns: ["ticket_id"]
             isOneToOne: false
             referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      channels: {
+        Row: {
+          config: Json | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          type: string | null
+          updated_at: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          config?: Json | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          type?: string | null
+          updated_at?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          config?: Json | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          type?: string | null
+          updated_at?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channels_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_companies: {
+        Row: {
+          created_at: string | null
+          domain: string | null
+          id: string
+          name: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          domain?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          domain?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organizations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
             referencedColumns: ["id"]
           },
         ]
@@ -101,7 +220,6 @@ export type Database = {
           embedding: string | null
           id: string
           metadata: Json | null
-          organization_id: string | null
           search_vector: unknown | null
           status: string | null
           title: string
@@ -116,7 +234,6 @@ export type Database = {
           embedding?: string | null
           id?: string
           metadata?: Json | null
-          organization_id?: string | null
           search_vector?: unknown | null
           status?: string | null
           title: string
@@ -131,7 +248,6 @@ export type Database = {
           embedding?: string | null
           id?: string
           metadata?: Json | null
-          organization_id?: string | null
           search_vector?: unknown | null
           status?: string | null
           title?: string
@@ -145,178 +261,49 @@ export type Database = {
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "documents_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      learning_cards: {
-        Row: {
-          category: string | null
-          context: string
-          conversation_context: string | null
-          created_at: string | null
-          creator_id: string | null
-          id: string
-          metadata: Json | null
-          notes: string | null
-          organization_id: string | null
-          priority: string | null
-          status: string | null
-          suggested_response: string | null
-          trigger: string
-          updated_at: string | null
-        }
-        Insert: {
-          category?: string | null
-          context: string
-          conversation_context?: string | null
-          created_at?: string | null
-          creator_id?: string | null
-          id?: string
-          metadata?: Json | null
-          notes?: string | null
-          organization_id?: string | null
-          priority?: string | null
-          status?: string | null
-          suggested_response?: string | null
-          trigger: string
-          updated_at?: string | null
-        }
-        Update: {
-          category?: string | null
-          context?: string
-          conversation_context?: string | null
-          created_at?: string | null
-          creator_id?: string | null
-          id?: string
-          metadata?: Json | null
-          notes?: string | null
-          organization_id?: string | null
-          priority?: string | null
-          status?: string | null
-          suggested_response?: string | null
-          trigger?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "learning_cards_creator_id_fkey"
-            columns: ["creator_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "learning_cards_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
         ]
       }
       messages: {
         Row: {
-          ai_metadata: Json | null
-          attachments: Json | null
+          channel_id: string | null
           content: string
           created_at: string | null
           id: string
-          intent: string | null
-          is_ai_generated: boolean | null
-          is_internal: boolean | null
+          metadata: Json | null
           sender_id: string | null
-          sentiment: string | null
           ticket_id: string | null
         }
         Insert: {
-          ai_metadata?: Json | null
-          attachments?: Json | null
+          channel_id?: string | null
           content: string
           created_at?: string | null
           id?: string
-          intent?: string | null
-          is_ai_generated?: boolean | null
-          is_internal?: boolean | null
+          metadata?: Json | null
           sender_id?: string | null
-          sentiment?: string | null
           ticket_id?: string | null
         }
         Update: {
-          ai_metadata?: Json | null
-          attachments?: Json | null
+          channel_id?: string | null
           content?: string
           created_at?: string | null
           id?: string
-          intent?: string | null
-          is_ai_generated?: boolean | null
-          is_internal?: boolean | null
+          metadata?: Json | null
           sender_id?: string | null
-          sentiment?: string | null
           ticket_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "messages_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "messages_sender_id_fkey"
             columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "messages_ticket_id_fkey"
-            columns: ["ticket_id"]
-            isOneToOne: false
-            referencedRelation: "tickets"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      organizations: {
-        Row: {
-          ai_settings: Json | null
-          billing_email: string | null
-          created_at: string | null
-          domain: string | null
-          id: string
-          name: string
-          settings: Json | null
-          updated_at: string | null
-          workspace_id: string
-        }
-        Insert: {
-          ai_settings?: Json | null
-          billing_email?: string | null
-          created_at?: string | null
-          domain?: string | null
-          id?: string
-          name: string
-          settings?: Json | null
-          updated_at?: string | null
-          workspace_id: string
-        }
-        Update: {
-          ai_settings?: Json | null
-          billing_email?: string | null
-          created_at?: string | null
-          domain?: string | null
-          id?: string
-          name?: string
-          settings?: Json | null
-          updated_at?: string | null
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "organizations_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -331,7 +318,6 @@ export type Database = {
           description: string | null
           id: string
           metadata: Json | null
-          organization_id: string | null
           priority: string
           resolved_at: string | null
           search_vector: unknown | null
@@ -351,7 +337,6 @@ export type Database = {
           description?: string | null
           id?: string
           metadata?: Json | null
-          organization_id?: string | null
           priority?: string
           resolved_at?: string | null
           search_vector?: unknown | null
@@ -371,7 +356,6 @@ export type Database = {
           description?: string | null
           id?: string
           metadata?: Json | null
-          organization_id?: string | null
           priority?: string
           resolved_at?: string | null
           search_vector?: unknown | null
@@ -398,17 +382,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "tickets_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "tickets_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
-            referencedRelation: "workspaces"
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_cards: {
+        Row: {
+          category: string | null
+          context: string
+          conversation_context: string | null
+          created_at: string | null
+          creator_id: string | null
+          id: string
+          metadata: Json | null
+          notes: string | null
+          priority: string | null
+          status: string | null
+          suggested_response: string | null
+          trigger: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          context: string
+          conversation_context?: string | null
+          created_at?: string | null
+          creator_id?: string | null
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          priority?: string | null
+          status?: string | null
+          suggested_response?: string | null
+          trigger: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          context?: string
+          conversation_context?: string | null
+          created_at?: string | null
+          creator_id?: string | null
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          priority?: string | null
+          status?: string | null
+          suggested_response?: string | null
+          trigger?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_cards_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -421,7 +454,6 @@ export type Database = {
           is_approved: boolean
           metadata: Json | null
           notes: string | null
-          organization_id: string | null
           review_time: number | null
           session_id: string | null
           trainer_id: string | null
@@ -434,7 +466,6 @@ export type Database = {
           is_approved: boolean
           metadata?: Json | null
           notes?: string | null
-          organization_id?: string | null
           review_time?: number | null
           session_id?: string | null
           trainer_id?: string | null
@@ -447,7 +478,6 @@ export type Database = {
           is_approved?: boolean
           metadata?: Json | null
           notes?: string | null
-          organization_id?: string | null
           review_time?: number | null
           session_id?: string | null
           trainer_id?: string | null
@@ -458,14 +488,7 @@ export type Database = {
             foreignKeyName: "training_feedback_card_id_fkey"
             columns: ["card_id"]
             isOneToOne: false
-            referencedRelation: "learning_cards"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "training_feedback_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
+            referencedRelation: "training_cards"
             referencedColumns: ["id"]
           },
           {
@@ -493,7 +516,6 @@ export type Database = {
           end_time: string | null
           id: string
           metadata: Json | null
-          organization_id: string | null
           start_time: string | null
           status: string | null
           trainer_id: string | null
@@ -507,7 +529,6 @@ export type Database = {
           end_time?: string | null
           id?: string
           metadata?: Json | null
-          organization_id?: string | null
           start_time?: string | null
           status?: string | null
           trainer_id?: string | null
@@ -521,20 +542,12 @@ export type Database = {
           end_time?: string | null
           id?: string
           metadata?: Json | null
-          organization_id?: string | null
           start_time?: string | null
           status?: string | null
           trainer_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "training_sessions_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "training_sessions_trainer_id_fkey"
             columns: ["trainer_id"]
@@ -546,109 +559,54 @@ export type Database = {
       }
       users: {
         Row: {
-          avatar_url: string | null
+          account_id: string | null
           created_at: string | null
+          customer_company_id: string | null
           email: string
-          expertise: Json | null
-          full_name: string | null
+          first_name: string | null
           id: string
-          organization_id: string | null
-          preferences: Json | null
-          role: string
-          settings: Json | null
-          status: string | null
+          last_name: string | null
+          role: string | null
           updated_at: string | null
         }
         Insert: {
-          avatar_url?: string | null
+          account_id?: string | null
           created_at?: string | null
+          customer_company_id?: string | null
           email: string
-          expertise?: Json | null
-          full_name?: string | null
+          first_name?: string | null
           id?: string
-          organization_id?: string | null
-          preferences?: Json | null
-          role?: string
-          settings?: Json | null
-          status?: string | null
+          last_name?: string | null
+          role?: string | null
           updated_at?: string | null
         }
         Update: {
-          avatar_url?: string | null
+          account_id?: string | null
           created_at?: string | null
+          customer_company_id?: string | null
           email?: string
-          expertise?: Json | null
-          full_name?: string | null
+          first_name?: string | null
           id?: string
-          organization_id?: string | null
-          preferences?: Json | null
-          role?: string
-          settings?: Json | null
-          status?: string | null
+          last_name?: string | null
+          role?: string | null
           updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "users_organization_id_fkey"
-            columns: ["organization_id"]
+            foreignKeyName: "users_account_id_fkey"
+            columns: ["account_id"]
             isOneToOne: false
-            referencedRelation: "organizations"
+            referencedRelation: "accounts"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      workspace_members: {
-        Row: {
-          created_at: string
-          role: string
-          user_id: string
-          workspace_id: string
-        }
-        Insert: {
-          created_at?: string
-          role: string
-          user_id: string
-          workspace_id: string
-        }
-        Update: {
-          created_at?: string
-          role?: string
-          user_id?: string
-          workspace_id?: string
-        }
-        Relationships: [
           {
-            foreignKeyName: "workspace_members_workspace_id_fkey"
-            columns: ["workspace_id"]
+            foreignKeyName: "users_customer_company_id_fkey"
+            columns: ["customer_company_id"]
             isOneToOne: false
-            referencedRelation: "workspaces"
+            referencedRelation: "customer_companies"
             referencedColumns: ["id"]
           },
         ]
-      }
-      workspaces: {
-        Row: {
-          created_at: string
-          id: string
-          name: string
-          slug: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          name: string
-          slug: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          name?: string
-          slug?: string
-          updated_at?: string
-        }
-        Relationships: []
       }
     }
     Views: {

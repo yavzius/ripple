@@ -73,8 +73,8 @@ export const Sidebar = ({ isCollapsed }: SidebarProps) => {
       icon: Ticket,
     },
     {
-      title: "CRM",
-      href: "/crm",
+      title: "Companies",
+      href: "/companies",
       icon: Users,
     },
 
