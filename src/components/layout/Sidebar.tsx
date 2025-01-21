@@ -22,7 +22,7 @@ export const Sidebar = ({ isCollapsed }: SidebarProps) => {
     return location.pathname === path;
   };
 
-  const navItems = [
+  const navItemsDraft = [
     {
       title: "Dashboard",
       href: "/dashboard",
@@ -58,6 +58,26 @@ export const Sidebar = ({ isCollapsed }: SidebarProps) => {
       href: "/updates",
       icon: Bell,
     },
+    {
+      title: "Settings",
+      href: "/settings",
+      icon: Settings,
+    },
+  ];
+
+  const navItems = [
+
+    {
+      title: "Tickets",
+      href: "/tickets",
+      icon: Ticket,
+    },
+    {
+      title: "CRM",
+      href: "/crm",
+      icon: Users,
+    },
+
     {
       title: "Settings",
       href: "/settings",

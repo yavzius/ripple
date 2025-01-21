@@ -3,10 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
 const SUPABASE_URL = "https://bnxxzhsmkzndgwqvicpj.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJueHh6aHNta3puZGd3cXZpY3BqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzczMzgyMTYsImV4cCI6MjA1MjkxNDIxNn0.rVlP4zZ_nEcwJ8IbRtNPS53-3IF2TPAhUImEbYYec0M";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJueHh6aHNta3puZGd3cXZpY3BqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzczMzgyMTYsImV4cCI6MjA1MjkxNDIxNn0.rVlP4zZ_nEcwJ8IbRtNPS53-3IF2TPAhUImEbYYec0M";
 
-
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,

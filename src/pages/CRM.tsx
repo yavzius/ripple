@@ -30,6 +30,11 @@ type Organization = Tables<"organizations">;
 type User = Tables<"users">;
 type Ticket = Tables<"tickets">;
 
+interface OrganizationResponse extends Organization {
+  customers: User[];
+  tickets: Ticket[];
+}
+
 interface OrganizationWithDetails extends Organization {
   customers: User[];
   tickets: Ticket[];
@@ -55,11 +60,21 @@ export default function CRM() {
       if (!workspace) return [];
 
       try {
-        // Fetch organizations for current workspace
+        // Single query to fetch organizations with related customers and tickets
         const { data: organizations, error: orgError } = await supabase
           .from("organizations")
-          .select("*")
-          .eq("workspace_id", workspace.id);
+          .select(`
+            *,
+            customers:users(
+              *
+            ),
+            tickets:tickets(
+              *
+            )
+          `)
+          .eq("workspace_id", workspace.id)
+          .eq("tickets.workspace_id", workspace.id)
+          .order("name") as { data: OrganizationResponse[] | null, error: any };
 
         console.log("Organizations response:", { organizations, orgError });
 
@@ -73,60 +88,22 @@ export default function CRM() {
           return [];
         }
 
-        // Fetch customers and tickets for each organization
-        const orgsWithDetails: OrganizationWithDetails[] = await Promise.all(
-          organizations.map(async (org) => {
-            console.log("Fetching details for organization:", org.id);
-            
-            try {
-              const [customersResponse, ticketsResponse] = await Promise.all([
-                supabase
-                  .from("users")
-                  .select("*")
-                  .eq("organization_id", org.id)
-                  .eq("role", "customer")
-                  .order("full_name"),
-                supabase
-                  .from("tickets")
-                  .select("*")
-                  .eq("organization_id", org.id)
-                  .eq("workspace_id", workspace.id)
-                  .order("created_at", { ascending: false }),
-              ]);
+        // Process the nested data and filter customers
+        const orgsWithDetails: OrganizationWithDetails[] = organizations.map((org) => {
+          const tickets = org.tickets || [];
+          const customers = (org.customers || []).filter(user => user.role === 'customer');
+          const lastContact = tickets.length > 0 ? new Date(tickets[0].created_at!) : undefined;
+          const activeTickets = tickets.filter(t => t.status !== "resolved").length;
 
-              console.log("Organization details responses:", {
-                org: org.id,
-                customers: customersResponse,
-                tickets: ticketsResponse,
-              });
-
-              if (customersResponse.error) {
-                console.error("Error fetching customers:", customersResponse.error);
-                throw customersResponse.error;
-              }
-              if (ticketsResponse.error) {
-                console.error("Error fetching tickets:", ticketsResponse.error);
-                throw ticketsResponse.error;
-              }
-
-              const tickets = ticketsResponse.data || [];
-              const lastContact = tickets.length > 0 ? new Date(tickets[0].created_at!) : undefined;
-              const activeTickets = tickets.filter(t => t.status !== "resolved").length;
-
-              return {
-                ...org,
-                customers: customersResponse.data || [],
-                tickets,
-                lastContact,
-                activeTickets,
-                totalTickets: tickets.length,
-              };
-            } catch (error) {
-              console.error("Error fetching details for organization:", org.id, error);
-              throw error;
-            }
-          })
-        );
+          return {
+            ...org,
+            customers,
+            tickets,
+            lastContact,
+            activeTickets,
+            totalTickets: tickets.length,
+          };
+        });
 
         console.log("Final processed data:", orgsWithDetails);
         return orgsWithDetails;

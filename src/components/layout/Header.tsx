@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Settings } from "lucide-react";
+import { PanelLeftOpen, PanelRightOpen, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NotificationsDropdown } from "@/components/notifications/NotificationsDropdown";
 import { useNavigate } from "react-router-dom";
@@ -26,9 +26,9 @@ export const Header = ({ isCollapsed, onToggleSidebar }: HeaderProps) => {
             onClick={onToggleSidebar}
           >
             {isCollapsed ? (
-              <ChevronRight className="h-4 w-4" />
+              <PanelRightOpen className="h-4 w-4" />
             ) : (
-              <ChevronLeft className="h-4 w-4" />
+              <PanelLeftOpen className="h-4 w-4" />
             )}
           </Button>
           <div className="flex items-center gap-2">

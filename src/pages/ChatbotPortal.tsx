@@ -14,13 +14,27 @@ interface Message {
   timestamp: string;
 }
 
+interface UserDetails {
+  email: string;
+  full_name: string;
+  organization_name: string;
+  domain?: string;
+}
+
 const ChatbotPortal = () => {
   const { workspaceId } = useParams();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [workspace, setWorkspace] = useState<{ name: string } | null>(null);
+  const [workspace, setWorkspace] = useState<{ name: string, id: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
+  const [tempUserDetails, setTempUserDetails] = useState<UserDetails>({
+    email: '',
+    full_name: '',
+    organization_name: '',
+    domain: ''
+  });
 
   useEffect(() => {
     const fetchWorkspace = async () => {
@@ -32,7 +46,7 @@ const ChatbotPortal = () => {
       try {
         const { data, error: workspaceError } = await supabase
           .from('workspaces')
-          .select('name')
+          .select('name, id')
           .eq('id', workspaceId)
           .single();
 
@@ -43,14 +57,6 @@ const ChatbotPortal = () => {
 
         setWorkspace(data);
         setError(null);
-        
-        // Add initial greeting message
-        setMessages([{
-          id: '0',
-          content: `Welcome to ${data.name}'s support chat! How can I help you today?`,
-          isUser: false,
-          timestamp: new Date().toISOString()
-        }]);
       } catch (err) {
         setError("Failed to load workspace");
       }
@@ -58,6 +64,153 @@ const ChatbotPortal = () => {
 
     fetchWorkspace();
   }, [workspaceId]);
+
+  const handleStartChat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tempUserDetails.email || !tempUserDetails.full_name || 
+        !tempUserDetails.organization_name) return;
+
+    try {
+      setLoading(true);
+      
+      // First create or get organization
+      let organizationId;
+      const { data: existingOrg } = await supabase
+        .from('organizations')
+        .select('id')
+        .eq('name', tempUserDetails.organization_name)
+        .eq('workspace_id', workspaceId)
+        .single();
+
+      if (existingOrg) {
+        organizationId = existingOrg.id;
+      } else if (workspace) {
+        const { data: newOrg, error: orgError } = await supabase
+          .from('organizations')
+          .insert([{
+            name: tempUserDetails.organization_name,
+            workspace_id: workspaceId,
+            domain: tempUserDetails.domain || null
+          }])
+          .select()
+          .single();
+          
+        if (orgError) {
+          console.error('Organization creation error:', orgError);
+          throw new Error('Failed to create organization');
+        }
+        organizationId = newOrg.id;
+      }
+
+      // Create or get user in our users table
+      let userId;
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', tempUserDetails.email)
+        .single();
+
+      if (existingUser) {
+        userId = existingUser.id;
+      } else if (organizationId) {
+        const { data: newUser, error: userError } = await supabase
+          .from('users')
+          .insert([{
+            email: tempUserDetails.email,
+            full_name: tempUserDetails.full_name,
+            role: 'customer',
+            organization_id: organizationId
+          }])
+          .select()
+          .single();
+          
+        if (userError) {
+          console.error('User creation error:', userError);
+          throw new Error('Failed to create user');
+        }
+        userId = newUser.id;
+      }
+
+      setUserDetails({
+        ...tempUserDetails,
+        organization_name: tempUserDetails.organization_name
+      });
+      
+      // Add welcome message
+      setMessages([{
+        id: '0',
+        content: `Welcome ${tempUserDetails.full_name} from ${tempUserDetails.organization_name}! How can I help you today?`,
+        isUser: false,
+        timestamp: new Date().toISOString()
+      }]);
+    } catch (error) {
+      console.error('Error starting chat:', error);
+      toast.error(error instanceof Error ? error.message : "Failed to start chat");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createSupportTicket = async () => {
+    if (!workspace || !userDetails || messages.length < 2) return;
+
+    try {
+      // Get user
+      const { data: user } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', userDetails.email)
+        .single();
+
+      if (!user) throw new Error('User not found');
+
+      // Get organization
+      const { data: org } = await supabase
+        .from('organizations')
+        .select('id')
+        .eq('name', userDetails.organization_name)
+        .eq('workspace_id', workspaceId)
+        .single();
+
+      if (!org) throw new Error('Organization not found');
+
+      // Create ticket with chat history
+      const ticketDescription = messages
+        .map(m => `${m.isUser ? 'Customer' : 'Bot'}: ${m.content}`)
+        .join('\n');
+
+      // Generate ticket number using the function
+      const { data: ticketNumber } = await supabase
+        .rpc('generate_ticket_number', { workspace_id: workspaceId });
+
+      const { error: ticketError } = await supabase
+        .from('tickets')
+        .insert([{
+          subject: "Chat Support Request",
+          description: ticketDescription,
+          priority: "medium",
+          status: "open",
+          customer_id: user.id,
+          organization_id: org.id,
+          workspace_id: workspaceId,
+          ticket_number: ticketNumber
+        }]);
+
+      if (ticketError) throw ticketError;
+
+      // Add confirmation message
+      const confirmationMessage: Message = {
+        id: Date.now().toString(),
+        content: "I've created a support ticket for you. Our team will review your request and get back to you soon. You can close this chat window now.",
+        isUser: false,
+        timestamp: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, confirmationMessage]);
+    } catch (error) {
+      console.error('Error creating ticket:', error);
+      toast.error("Failed to create support ticket");
+    }
+  };
 
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
@@ -75,32 +228,39 @@ const ChatbotPortal = () => {
 
     try {
       // Store the message in Supabase
-      const { error: messageError } = await supabase
-        .from('messages')
-        .insert({
-          content: newMessage,
-          workspace_id: workspaceId,
-          is_user_message: true
-        });
+      const { data: user } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', userDetails?.email)
+        .single();
 
-      if (messageError) {
-        throw messageError;
+      if (user) {
+        const { error: messageError } = await supabase
+          .from('messages')
+          .insert({
+            content: newMessage,
+            workspace_id: workspaceId,
+            is_user_message: true,
+            sender_id: user.id
+          });
+
+        if (messageError) throw messageError;
       }
 
-      // TODO: Integrate with your AI service here
-      // For now, we'll simulate a response
-      setTimeout(() => {
+      // Create ticket after user's first message
+      if (messages.length === 1) {
         const botResponse: Message = {
-          id: (Date.now() + 1).toString(),
-          content: "Thank you for your message. Our AI is processing your request.",
+          id: Date.now().toString(),
+          content: "I understand your request. Let me create a support ticket for you to ensure our team can assist you properly.",
           isUser: false,
           timestamp: new Date().toISOString()
         };
         setMessages(prev => [...prev, botResponse]);
-        setLoading(false);
-      }, 1000);
+        await createSupportTicket();
+      }
     } catch (error) {
       toast.error("Failed to send message");
+    } finally {
       setLoading(false);
     }
   };
