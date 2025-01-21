@@ -6,7 +6,7 @@ type Workspace = Database["public"]["Tables"]["workspaces"]["Row"];
 
 const WORKSPACE_QUERY_KEY = ['workspace'] as const;
 
-async function fetchWorkspace() {
+async function fetchWorkspace(): Promise<Workspace> {
   const { data: { session }, error: authError } = await supabase.auth.getSession();
   if (authError) throw authError;
   if (!session?.user?.id) throw new Error('Not authenticated');
@@ -17,19 +17,19 @@ async function fetchWorkspace() {
     .single();
 
   if (error) throw error;
-  return data;
+  return data as Workspace;
 }
 
 export function useWorkspace() {
   const queryClient = useQueryClient();
 
-  const { data: workspace, isLoading: loading, error } = useQuery({
+  const { data: workspace, isLoading: loading, error } = useQuery<Workspace>({
     queryKey: WORKSPACE_QUERY_KEY,
     queryFn: fetchWorkspace,
     enabled: true, // Always enabled since we handle auth in the fetch function
     initialData: () => {
       // Try to get data from cache first
-      return queryClient.getQueryData(WORKSPACE_QUERY_KEY);
+      return queryClient.getQueryData<Workspace>(WORKSPACE_QUERY_KEY);
     },
   });
 

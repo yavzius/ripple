@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { Skeleton } from "@/components/ui/skeleton";
 
+
 interface HeaderProps {
   isCollapsed: boolean;
   onToggleSidebar: () => void;
