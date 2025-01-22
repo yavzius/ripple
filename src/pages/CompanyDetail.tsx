@@ -113,17 +113,18 @@ export default function CompanyDetail() {
             {company.customers?.length || 0} {company.customers?.length === 1 ? 'customer' : 'customers'}
           </span>
         </div>
-        <h1 className="text-3xl font-bold">{company.name}</h1>
-        <div className="mt-2 text-muted-foreground">
-          Created {new Date(company.created_at || '').toLocaleDateString()}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">{company.name}</h1>
+            <div className="mt-2 text-muted-foreground">
+              Created {new Date(company.created_at || '').toLocaleDateString()}
+            </div>
+          </div>
+          <Button onClick={() => navigate(`/companies/${id}/customers/new`)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Customer
+          </Button>
         </div>
-      </div>
-
-      <div className="flex justify-end">
-        <Button onClick={() => navigate(`/companies/${id}/customers/new`)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Customer
-        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
