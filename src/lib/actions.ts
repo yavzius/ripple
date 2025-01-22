@@ -204,3 +204,25 @@ export async function updateTicket(id: string, updates: Partial<Ticket>) {
   if (error) throw error;
   return data;
 }
+
+
+export async function createTicket(data: Ticket) {
+  const { data: ticket, error } = await supabase
+    .from('tickets')
+    .insert([data])
+    .select()
+    .single();
+}
+
+export async function getCustomers(customer_company_id: string){
+    const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('role', 'customer')
+    .eq('customer_company_id', customer_company_id)
+
+    if (error) throw error;
+    if (!data) return [];
+
+    return data;
+}

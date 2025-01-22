@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
-import { createTicket, getUsers, getOrganizations, getCustomers } from "@/lib/actions";
+import { createTicket, getCustomers } from "@/lib/actions";
 import { useForm, Controller } from "react-hook-form";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
@@ -46,41 +46,26 @@ const NewTicket = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loadingCustomers, setLoadingCustomers] = useState(true);
 
-  useEffect(() => {
-    const fetchCustomers = async () => {
-      try {
-        const [customersData, organizationsData] = await Promise.all([
-          getCustomers(),
-          getOrganizations()
-        ]);
+//   useEffect(() => {
+//     const fetchCustomers = async () => {
+//       try {
 
-        // Create a map of organization IDs to names
-        const orgMap = new Map(
-          organizationsData?.map(org => [org.account_id, org.name]) || []
-        );
 
-        // Get customers with their organization names
-        const customerUsers = customersData
-          ?.filter(user => user.role === 'customer')
-          .map(user => ({
-            ...user,
-            organization_name: orgMap.get(user.customer_company_id) || 'Unknown Organization'
-          })) || [];
 
-        setCustomers(customerUsers);
-      } catch (err) {
-        toast({
-          title: "Error",
-          description: "Failed to load customers",
-          variant: "destructive",
-        });
-      } finally {
-        setLoadingCustomers(false);
-      }
-    };
+//         setCustomers(customerUsers);
+//       } catch (err) {
+//         toast({
+//           title: "Error",
+//           description: "Failed to load customers",
+//           variant: "destructive",
+//         });
+//       } finally {
+//         setLoadingCustomers(false);
+//       }
+//     };
 
-    fetchCustomers();
-  }, [toast]);
+//     fetchCustomers();
+//   }, [toast]);
 
   const onSubmit = async (data: NewTicketFormData) => {
     try {

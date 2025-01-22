@@ -140,13 +140,6 @@ export type Database = {
             referencedRelation: "accounts"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "channels_workspace_id_fkey"
-            columns: ["account_id"]
-            isOneToOne: false
-            referencedRelation: "accounts"
-            referencedColumns: ["id"]
-          },
         ]
       }
       customer_companies: {
@@ -610,12 +603,6 @@ export type Database = {
           "": unknown
         }
         Returns: unknown
-      }
-      is_workspace_member: {
-        Args: {
-          workspace_id_param: string
-        }
-        Returns: boolean
       }
       ivfflat_bit_support: {
         Args: {
