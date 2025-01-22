@@ -18,25 +18,39 @@ type TicketResponse = {
   id: string;
   created_at: string | null;
   updated_at: string | null;
-  customer_id: string | null;
-  resolved_at: string | null;
-  subject: string | null;
-  customer: {
+  title: string | null;
+  description: string | null;
+  priority: string;
+  status: string;
+  assigned_to: string | null;
+  conversation: {
     id: string;
-    email: string | null;
-    first_name: string | null;
-    last_name: string | null;
-    customer_company: {
+    customer: {
       id: string;
-      name: string | null;
-      domain: string | null;
+      email: string | null;
+      first_name: string | null;
+      last_name: string | null;
+      customer_company: {
+        id: string;
+        name: string | null;
+        domain: string | null;
+      } | null;
     } | null;
   } | null;
 }
 
 const statusOptions = [
   { label: "Open", value: "open" },
+  { label: "In Progress", value: "in_progress" },
   { label: "Resolved", value: "resolved" },
+  { label: "Closed", value: "closed" },
+];
+
+const priorityOptions = [
+  { label: "Low", value: "low" },
+  { label: "Medium", value: "medium" },
+  { label: "High", value: "high" },
+  { label: "Urgent", value: "urgent" },
 ];
 
 const columns: ColumnDef<TicketResponse>[] = [
@@ -61,26 +75,59 @@ const columns: ColumnDef<TicketResponse>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "subject",
+    accessorKey: "title",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Subject" />
+      <DataTableColumnHeader column={column} title="Title" />
     ),
+    cell: ({ row }) => {
+      const title = row.getValue("title") as string;
+      return title || "Untitled Ticket";
+    },
   },
   {
-    accessorKey: "resolved_at",
+    accessorKey: "status",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Status" />
     ),
     cell: ({ row }) => (
       <div className="flex w-[100px] items-center">
-        <span className={row.getValue("resolved_at") ? "text-green-500" : "text-yellow-500"}>
-          {row.getValue("resolved_at") ? "Resolved" : "Open"}
+        <span className={`px-2 py-1 rounded-md text-xs font-medium capitalize ${
+          row.getValue("status") === "resolved" || row.getValue("status") === "closed" 
+            ? "bg-green-100 text-green-800" 
+            : row.getValue("status") === "in_progress" 
+              ? "bg-yellow-100 text-yellow-800"
+              : "bg-blue-100 text-blue-800"
+        }`}>
+          {row.getValue("status")}
         </span>
       </div>
     ),
     filterFn: (row, id, value: string[]) => {
-      const status = row.getValue("resolved_at") ? "resolved" : "open";
-      return value.includes(status);
+      return value.includes(row.getValue("status"));
+    },
+  },
+  {
+    accessorKey: "priority",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Priority" />
+    ),
+    cell: ({ row }) => (
+      <div className="flex w-[100px] items-center">
+        <span className={`px-2 py-1 rounded-md text-xs font-medium capitalize ${
+          row.getValue("priority") === "urgent" 
+            ? "bg-red-100 text-red-800" 
+            : row.getValue("priority") === "high"
+              ? "bg-orange-100 text-orange-800"
+              : row.getValue("priority") === "medium"
+                ? "bg-yellow-100 text-yellow-800"
+                : "bg-green-100 text-green-800"
+        }`}>
+          {row.getValue("priority")}
+        </span>
+      </div>
+    ),
+    filterFn: (row, id, value: string[]) => {
+      return value.includes(row.getValue("priority"));
     },
   },
   {
@@ -100,7 +147,12 @@ const columns: ColumnDef<TicketResponse>[] = [
     ),
     cell: ({ row }) => {
       const ticket = row.original;
-      return `${ticket.customer?.first_name} ${ticket.customer?.last_name}`.trim() || ticket.customer?.email || "Unknown";
+      const customerName = `${ticket.conversation?.customer?.first_name} ${ticket.conversation?.customer?.last_name}`.trim();
+      const customerEmail = ticket.conversation?.customer?.email;
+      
+      if (customerName) return customerName;
+      if (customerEmail) return customerEmail;
+      return "Anonymous Customer";
     },
   },
   {
@@ -110,7 +162,7 @@ const columns: ColumnDef<TicketResponse>[] = [
     ),
     cell: ({ row }) => {
       const ticket = row.original;
-      return ticket.customer?.customer_company?.name || "Unknown";
+      return ticket.conversation?.customer?.customer_company?.name || "Unknown";
     },
   },
   {
@@ -183,14 +235,19 @@ const TicketsPage = () => {
         columns={columns}
         data={tickets}
         isLoading={isLoading}
-        filterColumn="subject"
-        filterPlaceholder="Filter subjects..."
+        filterColumn="title"
+        filterPlaceholder="Filter titles..."
         onRowClick={(row) => navigate(`/tickets/${row.id}`)}
         facetedFilters={[
           {
-            column: "resolved_at",
+            column: "status",
             title: "Status",
             options: statusOptions,
+          },
+          {
+            column: "priority",
+            title: "Priority",
+            options: priorityOptions,
           },
         ]}
       />

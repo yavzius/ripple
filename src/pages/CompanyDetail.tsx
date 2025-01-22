@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { useToast } from "@/components/ui/use-toast";
@@ -21,51 +20,65 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Plus } from "lucide-react";
+import { ChevronRight, Plus, MessageCircle } from "lucide-react";
+import { getCompanyWithCustomers } from "@/lib/actions";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 type Tables<T extends keyof Database["public"]["Tables"]> = Database["public"]["Tables"][T]["Row"];
 type CustomerCompany = Tables<"customer_companies">;
-type User = Tables<"users">;
+type Customer = Tables<"customers">;
+type Conversation = Tables<"conversations">;
+type Message = Tables<"messages">;
 
-interface CustomerCompanyWithUsers extends CustomerCompany {
-  users: User[];
+interface CustomerWithConversations extends Customer {
+  conversations: (Conversation & {
+    messages: Message[];
+  })[];
 }
 
-export default function CustomerDetail() {
+interface CustomerCompanyWithCustomers extends CustomerCompany {
+  customers: CustomerWithConversations[];
+}
+
+const statusColors = {
+  open: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+  closed: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
+  resolved: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
+} as const;
+
+export default function CompanyDetail() {
   const { id } = useParams<{ id: string }>();
   const { workspace } = useWorkspace();
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const { data: company, isLoading } = useQuery({
-    queryKey: ["customer", id],
+    queryKey: ["company", id],
     queryFn: async () => {
       if (!id || !workspace?.id) return null;
-
-      const { data: customerCompany, error } = await supabase
-        .from("customer_companies")
-        .select(`
-          *,
-          users(*)
-        `)
-        .eq("id", id)
-        .eq("account_id", workspace.id)
-        .single();
-
-      if (error) {
-        console.error("Error fetching customer:", error);
+      try {
+        return await getCompanyWithCustomers(id, workspace.id) as CustomerCompanyWithCustomers;
+      } catch (error) {
+        console.error("Error fetching company:", error);
         toast({
-          title: "Error fetching customer",
-          description: error.message,
+          title: "Error fetching company",
+          description: error instanceof Error ? error.message : "Unknown error",
           variant: "destructive",
         });
         return null;
       }
-
-      return customerCompany as CustomerCompanyWithUsers;
     },
     enabled: !!id && !!workspace?.id,
   });
+
+  // Get total conversations across all customers
+  const totalConversations = company?.customers.reduce((acc, customer) => 
+    acc + (customer.conversations?.length || 0), 0) || 0;
+
+  // Get active conversations (not resolved)
+  const activeConversations = company?.customers.reduce((acc, customer) => 
+    acc + (customer.conversations?.filter(c => c.status === 'open').length || 0), 0) || 0;
 
   if (isLoading) {
     return (
@@ -82,34 +95,34 @@ export default function CustomerDetail() {
     return (
       <div className="container py-8">
         <div className="text-center py-12 text-muted-foreground">
-          Customer company not found.
+          Company not found.
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="mb-4">
+    <div className="container mx-auto p-4 space-y-6">
+      <div>
         <div className="flex items-center gap-1 mb-4">
-          <Link to="/companies" className="text-md text-primary font-medium hover:text-gray-700 inline-flex items-center gap-1">
+          <Link to="/companies" className="text-md text-primary font-medium hover:text-primary/80 inline-flex items-center gap-1">
             Companies
           </Link>
-          <ChevronRight className="h-4 w-4 text-gray-500" />
-          <span className="text-gray-500">
-            {company.users.length} {company.users.length === 1 ? 'contact' : 'contacts'}
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          <span className="text-muted-foreground">
+            {company.customers?.length || 0} {company.customers?.length === 1 ? 'customer' : 'customers'}
           </span>
         </div>
-        <h1 className="text-2xl font-bold">{company.name}</h1>
-        <div className="mt-2 text-gray-600">
-          Created {new Date(company.created_at).toLocaleDateString()}
+        <h1 className="text-3xl font-bold">{company.name}</h1>
+        <div className="mt-2 text-muted-foreground">
+          Created {new Date(company.created_at || '').toLocaleDateString()}
         </div>
       </div>
 
-      <div className="flex justify-end mb-4">
-        <Button onClick={() => navigate(`/companies/${id}/contacts/new`)}>
+      <div className="flex justify-end">
+        <Button onClick={() => navigate(`/companies/${id}/customers/new`)}>
           <Plus className="h-4 w-4 mr-2" />
-          Add Contact
+          Add Customer
         </Button>
       </div>
 
@@ -125,11 +138,11 @@ export default function CustomerDetail() {
             </div>
             <div>
               <div className="text-sm font-medium text-muted-foreground">Created</div>
-              <div>{new Date(company.created_at).toLocaleDateString()}</div>
+              <div>{new Date(company.created_at || '').toLocaleDateString()}</div>
             </div>
             <div>
               <div className="text-sm font-medium text-muted-foreground">Last Updated</div>
-              <div>{new Date(company.updated_at).toLocaleDateString()}</div>
+              <div>{new Date(company.updated_at || '').toLocaleDateString()}</div>
             </div>
           </CardContent>
         </Card>
@@ -140,17 +153,25 @@ export default function CustomerDetail() {
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <div className="text-2xl font-bold">{company.users.length}</div>
-              <div className="text-sm text-muted-foreground">Total Users</div>
+              <div className="text-2xl font-bold">{company.customers?.length || 0}</div>
+              <div className="text-sm text-muted-foreground">Total Customers</div>
             </div>
-            {/* Add more statistics as needed */}
+            <div className="space-y-1">
+              <div className="text-2xl font-bold">{totalConversations}</div>
+              <div className="text-sm text-muted-foreground">Total Conversations</div>
+            </div>
+            <div className="space-y-1">
+              <div className="text-2xl font-bold">{activeConversations}</div>
+              <div className="text-sm text-muted-foreground">Active Conversations</div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Contacts</CardTitle>
+          <CardTitle>Customers</CardTitle>
+          <CardDescription>Manage company customers and their information</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -158,29 +179,107 @@ export default function CustomerDetail() {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
+                <TableHead>Conversations</TableHead>
                 <TableHead>Joined</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {company.users.map((user) => (
-                <TableRow key={user.id}>
+              {company.customers?.map((customer) => (
+                <TableRow key={customer.id}>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Avatar className="h-8 w-8">
                         <AvatarFallback>
-                          {`${user.first_name?.[0] || ""}${user.last_name?.[0] || ""}`}
+                          {`${customer.first_name?.[0] || ""}${customer.last_name?.[0] || ""}`}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        {user.first_name} {user.last_name}
+                        {customer.first_name} {customer.last_name}
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.role || "-"}</TableCell>
+                  <TableCell>{customer.email}</TableCell>
                   <TableCell>
-                    {new Date(user.created_at || "").toLocaleDateString()}
+                    <div className="flex gap-2">
+                      {customer.conversations?.length || 0}
+                      {customer.conversations?.some(c => c.status === 'open') && (
+                        <Badge variant="secondary" className={statusColors.open}>
+                          {customer.conversations?.filter(c => c.status === 'open').length} Active
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {new Date(customer.created_at || "").toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate(`/conversations/${customer.conversations?.[0]?.id || 'new'}?customer=${customer.id}`)}
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Conversations</CardTitle>
+          <CardDescription>View and manage customer conversations</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Customer</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Last Message</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Resolved</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {company.customers?.flatMap(customer => 
+                customer.conversations?.map(conversation => ({
+                  ...conversation,
+                  customer
+                })) || []
+              )
+              .sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime())
+              .map(conversation => (
+                <TableRow key={conversation.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/conversations/${conversation.id}`)}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback>
+                          {`${conversation.customer.first_name?.[0] || ""}${conversation.customer.last_name?.[0] || ""}`}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        {conversation.customer.first_name} {conversation.customer.last_name}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={cn(statusColors[conversation.status as keyof typeof statusColors])}>
+                      {conversation.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {conversation.messages?.[conversation.messages.length - 1]?.content || '-'}
+                  </TableCell>
+                  <TableCell>
+                    {new Date(conversation.created_at || '').toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    {conversation.resolved_at ? new Date(conversation.resolved_at).toLocaleDateString() : '-'}
                   </TableCell>
                 </TableRow>
               ))}

@@ -11,7 +11,7 @@ import {
   Pin
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Dispatch, SetStateAction, useState } from "react";
+import { Dispatch, SetStateAction, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 
 interface SidebarProps {
@@ -21,7 +21,25 @@ interface SidebarProps {
 
 export const Sidebar = ({ isCollapsed, setIsCollapsed }: SidebarProps) => {
   const location = useLocation();
-  const [isPinned, setIsPinned] = useState(false);
+  const [isPinned, setIsPinned] = useState(() => {
+    const savedPinState = localStorage.getItem('sidebarPinned');
+    return savedPinState ? JSON.parse(savedPinState) : false;
+  });
+
+  // Initialize collapsed state based on pin state
+  useEffect(() => {
+    const savedPinState = localStorage.getItem('sidebarPinned');
+    const isPinned = savedPinState ? JSON.parse(savedPinState) : false;
+    const savedCollapsedState = localStorage.getItem('sidebarCollapsed');
+    const shouldBeCollapsed = savedCollapsedState ? JSON.parse(savedCollapsedState) : !isPinned;
+    setIsCollapsed(shouldBeCollapsed);
+  }, []);
+
+  // Save states when they change
+  useEffect(() => {
+    localStorage.setItem('sidebarPinned', JSON.stringify(isPinned));
+    localStorage.setItem('sidebarCollapsed', JSON.stringify(isCollapsed));
+  }, [isPinned, isCollapsed]);
 
   const handleMouseLeave = () => {
     if (!isPinned) {
@@ -36,8 +54,9 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: SidebarProps) => {
   };
 
   const togglePin = () => {
-    setIsPinned(!isPinned);
-    if (isPinned) {
+    const newPinState = !isPinned;
+    setIsPinned(newPinState);
+    if (!newPinState) {
       setIsCollapsed(true);
     }
   };

@@ -9,42 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      account_users: {
-        Row: {
-          account_id: string
-          created_at: string
-          role: string
-          user_id: string
-        }
-        Insert: {
-          account_id: string
-          created_at?: string
-          role: string
-          user_id: string
-        }
-        Update: {
-          account_id?: string
-          created_at?: string
-          role?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "account_users_account_id_fkey"
-            columns: ["account_id"]
-            isOneToOne: false
-            referencedRelation: "accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "account_users_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       accounts: {
         Row: {
           created_at: string
@@ -69,49 +33,41 @@ export type Database = {
         }
         Relationships: []
       }
-      ai_records: {
+      accounts_users: {
         Row: {
-          confidence_score: number | null
-          created_at: string | null
-          feedback: string | null
+          account_id: string
+          created_at: string
           id: string
-          interaction_type: string
-          metadata: Json | null
-          prompt: string | null
-          response: string | null
-          ticket_id: string | null
-          was_successful: boolean | null
+          role: string | null
+          user_id: string
         }
         Insert: {
-          confidence_score?: number | null
-          created_at?: string | null
-          feedback?: string | null
+          account_id: string
+          created_at?: string
           id?: string
-          interaction_type: string
-          metadata?: Json | null
-          prompt?: string | null
-          response?: string | null
-          ticket_id?: string | null
-          was_successful?: boolean | null
+          role?: string | null
+          user_id: string
         }
         Update: {
-          confidence_score?: number | null
-          created_at?: string | null
-          feedback?: string | null
+          account_id?: string
+          created_at?: string
           id?: string
-          interaction_type?: string
-          metadata?: Json | null
-          prompt?: string | null
-          response?: string | null
-          ticket_id?: string | null
-          was_successful?: boolean | null
+          role?: string | null
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "ai_interactions_ticket_id_fkey"
-            columns: ["ticket_id"]
+            foreignKeyName: "accounts_users_account_id_fkey"
+            columns: ["account_id"]
             isOneToOne: false
-            referencedRelation: "tickets"
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -157,6 +113,51 @@ export type Database = {
           },
         ]
       }
+      conversations: {
+        Row: {
+          account_id: string
+          channel: string
+          created_at: string | null
+          customer_id: string
+          id: string
+          resolved_at: string | null
+          status: string
+        }
+        Insert: {
+          account_id: string
+          channel?: string
+          created_at?: string | null
+          customer_id: string
+          id?: string
+          resolved_at?: string | null
+          status?: string
+        }
+        Update: {
+          account_id?: string
+          channel?: string
+          created_at?: string | null
+          customer_id?: string
+          id?: string
+          resolved_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_companies: {
         Row: {
           account_id: string
@@ -188,6 +189,41 @@ export type Database = {
             columns: ["account_id"]
             isOneToOne: false
             referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          created_at: string
+          customer_company_id: string | null
+          email: string | null
+          first_name: string | null
+          id: string
+          last_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_company_id?: string | null
+          email?: string | null
+          first_name?: string | null
+          id: string
+          last_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_company_id?: string | null
+          email?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Customers_customer_company_id_fkey"
+            columns: ["customer_company_id"]
+            isOneToOne: false
+            referencedRelation: "customer_companies"
             referencedColumns: ["id"]
           },
         ]
@@ -239,52 +275,32 @@ export type Database = {
       }
       messages: {
         Row: {
-          channel_id: string | null
           content: string
+          conversation_id: string | null
           created_at: string | null
           id: string
-          metadata: Json | null
-          sender_id: string | null
-          ticket_id: string | null
+          sender_type: string | null
         }
         Insert: {
-          channel_id?: string | null
           content: string
+          conversation_id?: string | null
           created_at?: string | null
           id?: string
-          metadata?: Json | null
-          sender_id?: string | null
-          ticket_id?: string | null
+          sender_type?: string | null
         }
         Update: {
-          channel_id?: string | null
           content?: string
+          conversation_id?: string | null
           created_at?: string | null
           id?: string
-          metadata?: Json | null
-          sender_id?: string | null
-          ticket_id?: string | null
+          sender_type?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "messages_channel_id_fkey"
-            columns: ["channel_id"]
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
             isOneToOne: false
-            referencedRelation: "channels"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "messages_sender_id_fkey"
-            columns: ["sender_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "messages_ticket_id_fkey"
-            columns: ["ticket_id"]
-            isOneToOne: false
-            referencedRelation: "tickets"
+            referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
         ]
@@ -292,29 +308,38 @@ export type Database = {
       tickets: {
         Row: {
           account_id: string
+          assigned_to: string | null
+          conversation_id: string | null
           created_at: string | null
-          customer_id: string | null
+          description: string | null
           id: string
-          resolved_at: string | null
-          subject: string | null
+          priority: string
+          status: string
+          title: string | null
           updated_at: string | null
         }
         Insert: {
           account_id: string
+          assigned_to?: string | null
+          conversation_id?: string | null
           created_at?: string | null
-          customer_id?: string | null
+          description?: string | null
           id?: string
-          resolved_at?: string | null
-          subject?: string | null
+          priority?: string
+          status?: string
+          title?: string | null
           updated_at?: string | null
         }
         Update: {
           account_id?: string
+          assigned_to?: string | null
+          conversation_id?: string | null
           created_at?: string | null
-          customer_id?: string | null
+          description?: string | null
           id?: string
-          resolved_at?: string | null
-          subject?: string | null
+          priority?: string
+          status?: string
+          title?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -326,205 +351,44 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "tickets_customer_id_fkey"
-            columns: ["customer_id"]
+            foreignKeyName: "tickets_assigned_to_fkey"
+            columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      training_cards: {
-        Row: {
-          category: string | null
-          context: string
-          conversation_context: string | null
-          created_at: string | null
-          creator_id: string | null
-          id: string
-          metadata: Json | null
-          notes: string | null
-          priority: string | null
-          status: string | null
-          suggested_response: string | null
-          trigger: string
-          updated_at: string | null
-        }
-        Insert: {
-          category?: string | null
-          context: string
-          conversation_context?: string | null
-          created_at?: string | null
-          creator_id?: string | null
-          id?: string
-          metadata?: Json | null
-          notes?: string | null
-          priority?: string | null
-          status?: string | null
-          suggested_response?: string | null
-          trigger: string
-          updated_at?: string | null
-        }
-        Update: {
-          category?: string | null
-          context?: string
-          conversation_context?: string | null
-          created_at?: string | null
-          creator_id?: string | null
-          id?: string
-          metadata?: Json | null
-          notes?: string | null
-          priority?: string | null
-          status?: string | null
-          suggested_response?: string | null
-          trigger?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      training_feedback: {
-        Row: {
-          card_id: string | null
-          created_at: string | null
-          id: string
-          is_approved: boolean
-          metadata: Json | null
-          notes: string | null
-          review_time: number | null
-          session_id: string | null
-          trainer_id: string | null
-          training_notes: string | null
-        }
-        Insert: {
-          card_id?: string | null
-          created_at?: string | null
-          id?: string
-          is_approved: boolean
-          metadata?: Json | null
-          notes?: string | null
-          review_time?: number | null
-          session_id?: string | null
-          trainer_id?: string | null
-          training_notes?: string | null
-        }
-        Update: {
-          card_id?: string | null
-          created_at?: string | null
-          id?: string
-          is_approved?: boolean
-          metadata?: Json | null
-          notes?: string | null
-          review_time?: number | null
-          session_id?: string | null
-          trainer_id?: string | null
-          training_notes?: string | null
-        }
-        Relationships: [
           {
-            foreignKeyName: "training_feedback_card_id_fkey"
-            columns: ["card_id"]
+            foreignKeyName: "tickets_conversation_id_fkey"
+            columns: ["conversation_id"]
             isOneToOne: false
-            referencedRelation: "training_cards"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "training_feedback_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "training_sessions"
+            referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
         ]
-      }
-      training_sessions: {
-        Row: {
-          cards_approved: number | null
-          cards_rejected: number | null
-          cards_reviewed: number | null
-          created_at: string | null
-          end_time: string | null
-          id: string
-          metadata: Json | null
-          start_time: string | null
-          status: string | null
-          trainer_id: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          cards_approved?: number | null
-          cards_rejected?: number | null
-          cards_reviewed?: number | null
-          created_at?: string | null
-          end_time?: string | null
-          id?: string
-          metadata?: Json | null
-          start_time?: string | null
-          status?: string | null
-          trainer_id?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          cards_approved?: number | null
-          cards_rejected?: number | null
-          cards_reviewed?: number | null
-          created_at?: string | null
-          end_time?: string | null
-          id?: string
-          metadata?: Json | null
-          start_time?: string | null
-          status?: string | null
-          trainer_id?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
       }
       users: {
         Row: {
-          account_id: string | null
           created_at: string | null
-          customer_company_id: string | null
           email: string | null
           first_name: string | null
           id: string
           last_name: string | null
-          role: string | null
         }
         Insert: {
-          account_id?: string | null
           created_at?: string | null
-          customer_company_id?: string | null
           email?: string | null
           first_name?: string | null
           id: string
           last_name?: string | null
-          role?: string | null
         }
         Update: {
-          account_id?: string | null
           created_at?: string | null
-          customer_company_id?: string | null
           email?: string | null
           first_name?: string | null
           id?: string
           last_name?: string | null
-          role?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "users_account_id_fkey"
-            columns: ["account_id"]
-            isOneToOne: false
-            referencedRelation: "accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "users_customer_company_id_fkey"
-            columns: ["customer_company_id"]
-            isOneToOne: false
-            referencedRelation: "customer_companies"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {

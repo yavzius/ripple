@@ -18,18 +18,34 @@ interface UserBasicInfo {
   last_name: string | null;
 }
 
-export type TicketWithRelations = Ticket & {
-  customer: User | null;
-}
+export type TicketWithRelations = Database['public']['Tables']['tickets']['Row'] & {
+  conversation: {
+    id: string;
+    resolved_at: string | null;
+    customer: {
+      id: string;
+      email: string | null;
+      first_name: string | null;
+      last_name: string | null;
+      customer_company: {
+        id: string;
+        name: string | null;
+        domain: string | null;
+      } | null;
+    } | null;
+  } | null;
+};
 
-export type MessageWithSender = Message & {
-  sender: User | null;
-}
+export type MessageWithSender = Database['public']['Tables']['messages']['Row'];
 
 export type TicketWithMessages = {
   ticket: TicketWithRelations;
   messages: MessageWithSender[];
-}
+};
+
+export type CompanyWithCustomers = Database['public']['Tables']['customer_companies']['Row'] & {
+  customers: Database['public']['Tables']['customers']['Row'][];
+};
 
 // Error handling helper
 const handleError = (error: Error | null) => {
@@ -47,18 +63,23 @@ export async function getTickets() {
         id,
         created_at,
         updated_at,
-        customer_id,
-        resolved_at,
-        subject,
-        customer:users (
+        title,
+        description,
+        priority,
+        status,
+        assigned_to,
+        conversation:conversations (
           id,
-          email,
-          first_name,
-          last_name,
-          customer_company:customer_companies (
+          customer:customers (
             id,
-            name,
-            domain
+            email,
+            first_name,
+            last_name,
+            customer_company:customer_companies!Customers_customer_company_id_fkey (
+              id,
+              name,
+              domain
+            )
           )
         )
       `)
@@ -126,44 +147,40 @@ export async function getCustomerTickets() {
 
 export async function getTicketWithMessages(id: string): Promise<TicketWithMessages> {
   try {
-    // Get ticket details
     const { data: ticket, error: ticketError } = await supabase
       .from('tickets')
       .select(`
         *,
-        customer:customer_id (
+        conversation:conversation_id (
           id,
-          email,
-          first_name,
-          last_name
+          resolved_at,
+          customer:customer_id (
+            id,
+            email,
+            first_name,
+            last_name,
+            customer_company:customer_company_id (
+              id,
+              name,
+              domain
+            )
+          ),
+          messages (
+            *
+          )
         )
       `)
       .eq('id', id)
       .single();
 
+    console.log(ticket);
+
     if (ticketError) throw ticketError;
     if (!ticket) throw new Error('Ticket not found');
 
-    // Get messages
-    const { data: messages, error: messagesError } = await supabase
-      .from('messages')
-      .select(`
-        *,
-        sender:sender_id (
-          id,
-          email,
-          first_name,
-          last_name
-        )
-      `)
-      .eq('ticket_id', id)
-      .order('created_at', { ascending: true });
-
-    if (messagesError) throw messagesError;
-
     return {
       ticket,
-      messages: messages || []
+      messages: ticket.conversation?.messages || []
     };
   } catch (error) {
     console.error('Error fetching ticket with messages:', error);
@@ -172,23 +189,14 @@ export async function getTicketWithMessages(id: string): Promise<TicketWithMessa
 }
 
 export async function createMessage(data: {
-  ticket_id: string;
+  conversation_id: string;
   content: string;
-  sender_id: string;
-  metadata?: Record<string, any>;
+  sender_type: 'agent' | 'customer';
 }) {
   const { data: message, error } = await supabase
     .from('messages')
     .insert([data])
-    .select(`
-      *,
-      sender:sender_id (
-        id,
-        email,
-        full_name,
-        avatar_url
-      )
-    `)
+    .select()
     .single();
 
   if (error) throw error;
@@ -234,4 +242,69 @@ export async function getCustomers(customer_company_id: string){
     if (!data) return [];
 
     return data;
+}
+
+export async function getCompanies(accountId: string) {
+  try {
+    const { data: companies, error } = await supabase
+      .from('customer_companies')
+      .select(`
+        *,
+        customers (
+          id,
+          first_name,
+          last_name,
+          email
+        )
+      `)
+      .eq('account_id', accountId);
+
+    if (error) throw error;
+    if (!companies) return [];
+
+    return companies as CompanyWithCustomers[];
+  } catch (error) {
+    console.error('Error fetching companies:', error);
+    throw error;
+  }
+}
+
+export async function getCompanyWithCustomers(id: string, accountId: string) {
+  try {
+    const { data: company, error } = await supabase
+      .from('customer_companies')
+      .select(`
+        *,
+        customers (
+          id,
+          email,
+          first_name,
+          last_name,
+          created_at,
+          conversations (
+            id,
+            created_at,
+            status,
+            resolved_at,
+            messages (
+              id,
+              content,
+              created_at,
+              sender_type
+            )
+          )
+        )
+      `)
+      .eq('id', id)
+      .eq('account_id', accountId)
+      .single();
+
+    if (error) throw error;
+    if (!company) throw new Error('Company not found');
+
+    return company;
+  } catch (error) {
+    console.error('Error fetching company:', error);
+    throw error;
+  }
 }

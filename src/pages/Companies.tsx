@@ -1,48 +1,135 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Link, useNavigate } from "react-router-dom";
+import { ColumnDef } from "@tanstack/react-table";
+import { MoreHorizontal, Plus } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { DataTable } from "@/components/ui/data-table";
+import { DataTableColumnHeader } from "@/components/ui/data-table-column-header";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useWorkspace } from "@/hooks/use-workspace";
-import { ChevronDown, ChevronUp, MoreHorizontal, Plus, Loader2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/components/ui/use-toast";
-import { useNavigate } from "react-router-dom";
+import { CompanyWithCustomers, getCompanies } from "@/lib/actions";
 
-type CustomerCompany = Tables<"customer_companies">;
-type User = Tables<"users">;
-
-interface CustomerCompanyWithDetails extends CustomerCompany {
-  users: User[];
-}
-
-type SortField = "name" | "users" | "domain";
-type SortOrder = "asc" | "desc";
+const columns: ColumnDef<CompanyWithCustomers>[] = [
+  {
+    id: "select",
+    header: ({ table }) => (
+      <Checkbox
+        checked={table.getIsAllPageRowsSelected() || table.getIsSomePageRowsSelected()}
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Select all"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Select row"
+        onClick={(e) => e.stopPropagation()}
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
+  {
+    accessorKey: "name",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Company Name" />
+    ),
+    cell: ({ row }) => {
+      const name = row.getValue("name") as string;
+      return (
+        <div className="flex items-center gap-2">
+          <Avatar className="h-8 w-8">
+            <AvatarFallback>
+              {name.substring(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          {name}
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "domain",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Domain" />
+    ),
+    cell: ({ row }) => row.getValue("domain") || "-",
+  },
+  {
+    id: "customers",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Customers" />
+    ),
+    cell: ({ row }) => {
+      const customers = row.original.customers;
+      return (
+        <div className="flex -space-x-2">
+          {customers.slice(0, 3).map((customer) => (
+            <Avatar key={customer.id} className="h-8 w-8 border-2 border-background">
+              <AvatarFallback>
+                {(customer.first_name?.[0] || "") + (customer.last_name?.[0] || "")}
+              </AvatarFallback>
+            </Avatar>
+          ))}
+          {customers.length > 3 && (
+            <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-background bg-muted text-xs font-medium">
+              +{customers.length - 3}
+            </div>
+          )}
+        </div>
+      );
+    },
+  },
+  {
+    id: "actions",
+    cell: ({ row }) => {
+      const company = row.original;
+      
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(company.id)}>
+              Copy company ID
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => {
+              e.stopPropagation();
+              window.location.href = `/companies/${company.id}`;
+            }}>
+              View details
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => {
+              e.stopPropagation();
+              window.location.href = `/companies/${company.id}/customers/new`;
+            }}>
+              Add Customer
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
+    },
+  },
+];
 
 export default function Companies() {
   const navigate = useNavigate();
   const { workspace } = useWorkspace();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [sortField, setSortField] = useState<SortField>("name");
-  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
-  const [companies, setCompanies] = useState<CustomerCompanyWithDetails[]>([]);
+  const [companies, setCompanies] = useState<CompanyWithCustomers[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -50,25 +137,11 @@ export default function Companies() {
       if (!workspace?.id) return;
 
       setIsLoading(true);
-      setError(null);
       try {
-        const { data: customerCompanies, error } = await supabase
-          .from("customer_companies")
-          .select(`
-            *,users(*)
-          `)
-          .eq("account_id", workspace.id);
-
-        if (error) {
-          throw error;
-        }
-
-        if (!customerCompanies) return [];
-
-        setCompanies(customerCompanies);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to fetch companies';
-        setError(new Error(message));
+        const companies = await getCompanies(workspace.id);
+        setCompanies(companies);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to fetch companies';
         toast({
           title: "Error fetching companies",
           description: message,
@@ -82,217 +155,30 @@ export default function Companies() {
     fetchCompanies();
   }, [workspace?.id, toast]);
 
-  const sortedAndFilteredOrgs = companies
-    ?.filter((org) =>
-      org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      org.domain?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => {
-      const multiplier = sortOrder === "asc" ? 1 : -1;
-      switch (sortField) {
-        case "name":
-          return multiplier * a.name.localeCompare(b.name);
-        case "users":
-          return multiplier * (a.users.length - b.users.length);
-        case "domain":
-          return multiplier * ((a.domain || "").localeCompare(b.domain || ""));
-        default:
-          return 0;
-      }
-    });
-
-  if (error) {
-    return (
-      <div className="p-4 text-red-500">
-        Error loading companies: {error.message}
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Companies</h2>
-          <p className="text-muted-foreground">
-            Manage your customer companies and their users
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between">
+        <div className="space-y-1">
+          <h2 className="text-2xl font-semibold tracking-tight">Companies</h2>
+          <p className="text-sm text-muted-foreground">
+            Manage your customer companies and their customers
           </p>
         </div>
-        <Button onClick={() => navigate("/companies/new")}>
-          <Plus className="mr-2 h-4 w-4" /> Add Company
+        <Button size="sm" asChild>
+          <Link to="/companies/new">
+            <Plus className="mr-2 h-4 w-4" /> Add Company
+          </Link>
         </Button>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="flex-1">
-          <Input
-            placeholder="Search companies..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-sm"
-          />
-        </div>
-      </div>
-
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead
-                className="cursor-pointer"
-                onClick={() => {
-                  if (sortField === "name") {
-                    setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-                  } else {
-                    setSortField("name");
-                    setSortOrder("asc");
-                  }
-                }}
-              >
-                <div className="flex items-center gap-2">
-                  Company Name
-                  {sortField === "name" && (
-                    sortOrder === "asc" ? (
-                      <ChevronUp className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" />
-                    )
-                  )}
-                </div>
-              </TableHead>
-              <TableHead
-                className="cursor-pointer"
-                onClick={() => {
-                  if (sortField === "domain") {
-                    setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-                  } else {
-                    setSortField("domain");
-                    setSortOrder("asc");
-                  }
-                }}
-              >
-                <div className="flex items-center gap-2">
-                  Domain
-                  {sortField === "domain" && (
-                    sortOrder === "asc" ? (
-                      <ChevronUp className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" />
-                    )
-                  )}
-                </div>
-              </TableHead>
-              <TableHead
-                className="cursor-pointer"
-                onClick={() => {
-                  if (sortField === "users") {
-                    setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-                  } else {
-                    setSortField("users");
-                    setSortOrder("asc");
-                  }
-                }}
-              >
-                <div className="flex items-center gap-2">
-                  Users
-                  {sortField === "users" && (
-                    sortOrder === "asc" ? (
-                      <ChevronUp className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" />
-                    )
-                  )}
-                </div>
-              </TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center">
-                  <div className="flex items-center justify-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Loading companies...
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : sortedAndFilteredOrgs.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center">
-                  No companies found
-                </TableCell>
-              </TableRow>
-            ) : (
-              sortedAndFilteredOrgs.map((company) => (
-                <TableRow key={company.id}>
-                  <TableCell>
-                    <div
-                      className="flex items-center gap-2 cursor-pointer"
-                      onClick={() => navigate(`/companies/${company.id}`)}
-                    >
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback>
-                          {company.name.substring(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      {company.name}
-                    </div>
-                  </TableCell>
-                  <TableCell>{company.domain || "-"}</TableCell>
-                  <TableCell>
-                    <div className="flex -space-x-2">
-                      {company.users.slice(0, 3).map((user) => (
-                        <Tooltip key={user.id}>
-                          <TooltipTrigger asChild>
-                            <Avatar className="h-8 w-8 border-2 border-background">
-                              <AvatarFallback>
-                                {(user.first_name?.[0] || "") +
-                                  (user.last_name?.[0] || "")}
-                              </AvatarFallback>
-                            </Avatar>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            {user.first_name} {user.last_name}
-                          </TooltipContent>
-                        </Tooltip>
-                      ))}
-                      {company.users.length > 3 && (
-                        <Badge variant="secondary" className="ml-2">
-                          +{company.users.length - 3}
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => navigate(`/companies/${company.id}`)}
-                        >
-                          View Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() =>
-                            navigate(`/companies/${company.id}/contacts/new`)
-                          }
-                        >
-                          Add Contact
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable
+        columns={columns}
+        data={companies}
+        isLoading={isLoading}
+        filterColumn="name"
+        filterPlaceholder="Filter companies..."
+        onRowClick={(row) => navigate(`/companies/${row.id}`)}
+      />
     </div>
   );
 } 

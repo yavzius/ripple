@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-
+import type { Database } from "../../database.types";
 
 type Workspace = Database["public"]["Tables"]["accounts"]["Row"];
 
@@ -11,21 +11,21 @@ async function fetchWorkspace(): Promise<Workspace> {
   if (authError) throw authError;
   if (!session?.user?.id) throw new Error('Not authenticated');
 
-  // First check if user is a member of any workspace
-  const { data: memberData, error: memberError } = await supabase
-    .from('account_users')
+  // Get the user's account through the accounts_users junction table
+  const { data: accountUser, error: accountUserError } = await supabase
+    .from('accounts_users')
     .select('account_id')
     .eq('user_id', session.user.id)
     .single();
 
-  if (memberError) throw memberError;
-  if (!memberData?.account_id) throw new Error('No workspace found');
+  if (accountUserError) throw accountUserError;
+  if (!accountUser?.account_id) throw new Error('No workspace found');
 
   // Then fetch the workspace details
   const { data, error } = await supabase
     .from('accounts')
     .select('*')
-    .eq('id', memberData.account_id)
+    .eq('id', accountUser.account_id)
     .single();
 
   if (error) throw error;
