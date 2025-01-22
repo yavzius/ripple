@@ -8,7 +8,8 @@ import {
   Settings,
   Users,
   CircleDotDashed,
-  Pin
+  Pin,
+  MessageSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Dispatch, SetStateAction, useState, useEffect } from "react";
@@ -66,6 +67,11 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: SidebarProps) => {
   };
 
   const navItems = [
+    {
+      title: "Inbox",
+      href: "/inbox",
+      icon: MessageSquare,
+    },
     {
       title: "Tickets",
       href: "/tickets",

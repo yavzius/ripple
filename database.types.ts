@@ -119,6 +119,7 @@ export type Database = {
           channel: string
           created_at: string | null
           customer_id: string
+          happiness_score: number | null
           id: string
           resolved_at: string | null
           status: string
@@ -128,6 +129,7 @@ export type Database = {
           channel?: string
           created_at?: string | null
           customer_id: string
+          happiness_score?: number | null
           id?: string
           resolved_at?: string | null
           status?: string
@@ -137,6 +139,7 @@ export type Database = {
           channel?: string
           created_at?: string | null
           customer_id?: string
+          happiness_score?: number | null
           id?: string
           resolved_at?: string | null
           status?: string
