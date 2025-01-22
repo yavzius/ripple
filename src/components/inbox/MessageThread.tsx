@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Building2, User, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { analyzeCustomerSentiment as analyzeSentiment } from "@/lib/langsmith-service";
+import { analyzeCustomerSentiment as analyzeSentiment, generateCustomerSupportResponse } from "@/lib/langsmith-service";
 
 interface MessageThreadProps {
   conversationId: string;
@@ -127,7 +127,7 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
                 .eq("id", conversationId);
 
               // Generate AI response
-              const aiResponse = await generateSupportResponse(
+              const aiResponse = await generateCustomerSupportResponse(
                 {
                   messages: messages.concat(newMessage),
                   customer: conversation.customer,
@@ -159,6 +159,7 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
               } else {
                 // Create a ticket for human review
                 await supabase.from("tickets").insert({
+                  account_id: conversation.customer.customer_company!.id,
                   conversation_id: conversationId,
                   status: "open",
                   priority: "medium",
