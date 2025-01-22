@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
+import { Database } from '../../database.types';
 
 // Types
 type Tables = Database['public']['Tables'];
@@ -18,13 +18,17 @@ interface UserBasicInfo {
   last_name: string | null;
 }
 
-interface TicketWithRelations extends Omit<Ticket, 'customer_id' | 'assignee_id'> {
-  customer: UserBasicInfo | null;
-  assignee: UserBasicInfo | null;
+export type TicketWithRelations = Ticket & {
+  customer: User | null;
 }
 
-interface MessageWithUser extends Omit<Message, 'sender_id'> {
-  sender: UserBasicInfo;
+export type MessageWithSender = Message & {
+  sender: User | null;
+}
+
+export type TicketWithMessages = {
+  ticket: TicketWithRelations;
+  messages: MessageWithSender[];
 }
 
 // Error handling helper
@@ -40,18 +44,22 @@ export async function getTickets() {
     const { data: ticketsData, error: ticketsError } = await supabase
       .from('tickets')
       .select(`
-        *,
-        customer:customer_id (
+        id,
+        created_at,
+        updated_at,
+        customer_id,
+        resolved_at,
+        subject,
+        customer:users (
           id,
           email,
           first_name,
-          last_name
-        ),
-        assignee:assignee_id (
-          id,
-          email,
-          first_name,
-          last_name
+          last_name,
+          customer_company:customer_companies (
+            id,
+            name,
+            domain
+          )
         )
       `)
       .order('created_at', { ascending: false });
@@ -116,7 +124,7 @@ export async function getCustomerTickets() {
   }
 }
 
-export async function getTicketWithMessages(id: string) {
+export async function getTicketWithMessages(id: string): Promise<TicketWithMessages> {
   try {
     // Get ticket details
     const { data: ticket, error: ticketError } = await supabase
@@ -124,12 +132,6 @@ export async function getTicketWithMessages(id: string) {
       .select(`
         *,
         customer:customer_id (
-          id,
-          email,
-          first_name,
-          last_name
-        ),
-        assignee:assignee_id (
           id,
           email,
           first_name,
@@ -198,13 +200,20 @@ export async function updateTicket(id: string, updates: Partial<Ticket>) {
     .from('tickets')
     .update(updates)
     .eq('id', id)
-    .select()
+    .select(`
+      *,
+      customer:customer_id (
+        id,
+        email,
+        first_name,
+        last_name
+      )
+    `)
     .single();
 
   if (error) throw error;
   return data;
 }
-
 
 export async function createTicket(data: Ticket) {
   const { data: ticket, error } = await supabase

@@ -28,7 +28,22 @@ export type Database = {
           role?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "account_users_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       accounts: {
         Row: {
@@ -281,6 +296,7 @@ export type Database = {
           customer_id: string | null
           id: string
           resolved_at: string | null
+          subject: string | null
           updated_at: string | null
         }
         Insert: {
@@ -289,6 +305,7 @@ export type Database = {
           customer_id?: string | null
           id?: string
           resolved_at?: string | null
+          subject?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -297,6 +314,7 @@ export type Database = {
           customer_id?: string | null
           id?: string
           resolved_at?: string | null
+          subject?: string | null
           updated_at?: string | null
         }
         Relationships: [

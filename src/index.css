@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -19,11 +21,11 @@
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
  
-    --muted: 251.71 80.39% 80%;
+    --muted: 240 4.76% 95.88%;
     --muted-foreground: 215.4 16.3% 46.9%;
  
     --accent: 251.38 48.33% 23.53%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent-foreground: 0 0% 100%;
  
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
@@ -33,6 +35,12 @@
     --ring: 222.2 84% 4.9%;
  
     --radius: 0.5rem;
+
+    /* Data Table specific */
+    --table-header: var(--muted-foreground);
+    --table-row-hover: var(--muted);
+    --table-selected: var(--accent);
+    --table-selected-text: var(--accent-foreground);
   }
  
   .dark {
@@ -63,6 +71,12 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
+
+    /* Data Table specific dark mode */
+    --table-header: var(--muted-foreground);
+    --table-row-hover: var(--muted);
+    --table-selected: var(--accent);
+    --table-selected-text: var(--accent-foreground);
   }
 }
  
@@ -94,5 +108,14 @@
 
   .content-area {
     @apply p-6;
+  }
+
+  /* Data Table styles */
+  .data-table-header {
+    @apply text-table-header font-medium;
+  }
+
+  .data-table-row {
+    @apply hover:bg-table-row-hover/50 data-[state=selected]:bg-table-selected data-[state=selected]:text-table-selected-text;
   }
 }

@@ -11,7 +11,7 @@ export const Header = () => {
   const { workspace, loading } = useWorkspace();
 
   return (
-    <header className="flex h-14 items-center justify-end gap-2 border-b bg-background/95 px-4">
+    <header className="flex h-14 items-center justify-end gap-2 px-4">
       {loading ? (
         <Skeleton className="h-4 w-32" />
       ) : workspace ? (

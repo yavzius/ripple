@@ -47,6 +47,7 @@
     "@tanstack/query-sync-storage-persister": "^5.64.2",
     "@tanstack/react-query": "^5.56.2",
     "@tanstack/react-query-persist-client": "^5.64.2",
+    "@tanstack/react-table": "^8.20.6",
     "@uiw/react-md-editor": "^4.0.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -72,7 +73,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
-    "@tailwindcss/typography": "^0.5.15",
+    "@tailwindcss/typography": "^0.5.16",
     "@types/node": "^22.5.5",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",

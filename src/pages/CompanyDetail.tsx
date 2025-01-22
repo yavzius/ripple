@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Tables } from "@/integrations/supabase/types";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { useToast } from "@/components/ui/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import type { Database } from "database.types";
 import {
   Card,
   CardContent,
@@ -21,8 +21,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { ChevronRight, Plus } from "lucide-react";
 
+type Tables<T extends keyof Database["public"]["Tables"]> = Database["public"]["Tables"][T]["Row"];
 type CustomerCompany = Tables<"customer_companies">;
 type User = Tables<"users">;
 
@@ -88,10 +89,26 @@ export default function CustomerDetail() {
   }
 
   return (
-    <div className="container py-8 space-y-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">{company.name}</h1>
+    <div className="container mx-auto p-4">
+      <div className="mb-4">
+        <div className="flex items-center gap-1 mb-4">
+          <Link to="/companies" className="text-md text-primary font-medium hover:text-gray-700 inline-flex items-center gap-1">
+            Companies
+          </Link>
+          <ChevronRight className="h-4 w-4 text-gray-500" />
+          <span className="text-gray-500">
+            {company.users.length} {company.users.length === 1 ? 'contact' : 'contacts'}
+          </span>
+        </div>
+        <h1 className="text-2xl font-bold">{company.name}</h1>
+        <div className="mt-2 text-gray-600">
+          Created {new Date(company.created_at).toLocaleDateString()}
+        </div>
+      </div>
+
+      <div className="flex justify-end mb-4">
         <Button onClick={() => navigate(`/companies/${id}/contacts/new`)}>
+          <Plus className="h-4 w-4 mr-2" />
           Add Contact
         </Button>
       </div>
@@ -108,11 +125,11 @@ export default function CustomerDetail() {
             </div>
             <div>
               <div className="text-sm font-medium text-muted-foreground">Created</div>
-              <div>{new Date(company.created_at || "").toLocaleDateString()}</div>
+              <div>{new Date(company.created_at).toLocaleDateString()}</div>
             </div>
             <div>
               <div className="text-sm font-medium text-muted-foreground">Last Updated</div>
-              <div>{new Date(company.updated_at || "").toLocaleDateString()}</div>
+              <div>{new Date(company.updated_at).toLocaleDateString()}</div>
             </div>
           </CardContent>
         </Card>

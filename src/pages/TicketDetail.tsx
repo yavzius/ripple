@@ -1,35 +1,14 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { getTicketWithMessages, createMessage, updateTicket } from "@/lib/actions";
+import { getTicketWithMessages, createMessage, updateTicket, type TicketWithRelations, type MessageWithSender } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { Loader2 } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { MessageCircle, TicketCheck, TicketX, Clock, User, ArrowLeft } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
-interface UserBasicInfo {
-  id: string;
-  email: string;
-  full_name: string | null;
-  avatar_url: string | null;
-}
-
-type Tables = Database['public']['Tables'];
-type TicketRow = Tables['tickets']['Row'];
-type MessageRow = Tables['messages']['Row'];
-
+import { TicketCheck, ChevronRight } from "lucide-react";
 interface ReplyFormData {
   content: string;
 }
@@ -39,8 +18,8 @@ const TicketDetail = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [ticket, setTicket] = useState<any>(null);
-  const [messages, setMessages] = useState<any[]>([]);
+  const [ticket, setTicket] = useState<TicketWithRelations | null>(null);
+  const [messages, setMessages] = useState<MessageWithSender[]>([]);
   const { register, handleSubmit, reset } = useForm<ReplyFormData>();
   const { toast } = useToast();
 
@@ -64,23 +43,22 @@ const TicketDetail = () => {
     fetchTicketData();
   }, [id]);
 
-  const handleStatusChange = async (newStatus: string) => {
+  const handleResolve = async () => {
     if (!ticket) return;
 
     try {
       const updatedTicket = await updateTicket(ticket.id, { 
-        status: newStatus,
-        ...(newStatus === "closed" ? { resolved_at: new Date().toISOString() } : {})
+        resolved_at: new Date().toISOString()
       });
       setTicket(updatedTicket);
       toast({
-        title: "Status Updated",
-        description: `Ticket status changed to ${newStatus}`,
+        title: "Ticket Resolved",
+        description: "The ticket has been marked as resolved",
       });
     } catch (err) {
       toast({
         title: "Error",
-        description: "Failed to update ticket status",
+        description: "Failed to resolve ticket",
         variant: "destructive",
       });
     }
@@ -145,31 +123,24 @@ const TicketDetail = () => {
   return (
     <div className="container mx-auto p-4">
       <div className="mb-4">
+        <Link to="/tickets" className="text-md text-primary font-medium hover:text-gray-700 mb-4 inline-flex items-center gap-1">
+          Tickets
+          <ChevronRight className="h-4 w-4" />
+        </Link>
         <h1 className="text-2xl font-bold">{ticket.subject}</h1>
         <div className="mt-2 text-gray-600">
-          Ticket #{ticket.ticket_number} • Created {format(new Date(ticket.created_at), "PPP")}
+          Ticket #{ticket.id} • Created {format(new Date(ticket.created_at || ''), "PPP")}
+          {ticket.resolved_at && ` • Resolved ${format(new Date(ticket.resolved_at), "PPP")}`}
         </div>
       </div>
 
       <div className="mb-4 flex gap-2">
-        <Button
-          variant={ticket.status === "open" ? "default" : "outline"}
-          onClick={() => handleStatusChange("open")}
-        >
-          Open
-        </Button>
-        <Button
-          variant={ticket.status === "pending" ? "default" : "outline"}
-          onClick={() => handleStatusChange("pending")}
-        >
-          Pending
-        </Button>
-        <Button
-          variant={ticket.status === "closed" ? "default" : "outline"}
-          onClick={() => handleStatusChange("closed")}
-        >
-          Closed
-        </Button>
+        {!ticket.resolved_at && (
+          <Button onClick={handleResolve}>
+            <TicketCheck className="mr-2 h-4 w-4" />
+            Resolve Ticket
+          </Button>
+        )}
       </div>
 
       <div className="space-y-4">
@@ -181,10 +152,10 @@ const TicketDetail = () => {
             <div className="flex justify-between items-start mb-2">
               <div>
                 <div className="font-semibold">
-                  {message.sender?.full_name || message.sender?.email || "Unknown"}
+                  {message.sender?.first_name} {message.sender?.last_name || message.sender?.email || "Unknown"}
                 </div>
                 <div className="text-sm text-gray-500">
-                  {format(new Date(message.created_at), "PPP 'at' pp")}
+                  {format(new Date(message.created_at || ''), "PPP 'at' pp")}
                 </div>
               </div>
             </div>
@@ -195,16 +166,18 @@ const TicketDetail = () => {
         ))}
       </div>
 
-      <form onSubmit={handleSubmit(onSubmitReply)} className="mt-6">
-        <Textarea
-          {...register("content", { required: true })}
-          placeholder="Type your reply..."
-          className="min-h-[100px]"
-        />
-        <Button type="submit" className="mt-2">
-          Send Reply
-        </Button>
-      </form>
+      {!ticket.resolved_at && (
+        <form onSubmit={handleSubmit(onSubmitReply)} className="mt-6">
+          <Textarea
+            {...register("content", { required: true })}
+            placeholder="Type your reply..."
+            className="min-h-[100px]"
+          />
+          <Button type="submit" className="mt-2">
+            Send Reply
+          </Button>
+        </form>
+      )}
     </div>
   );
 };

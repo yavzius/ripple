@@ -125,11 +125,11 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: SidebarProps) => {
                 key={item.title}
                 to={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:bg-accent hover:text-secondary group",
-                  isActive(item.href) && "bg-accent text-secondary"
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-[background-color,color] hover:bg-accent hover:text-secondary group",
+                  isActive(item.href) && "bg-accent text-secondary font-semibold"
                 )}
               >
-                <item.icon className="h-4 w-4 shrink-0 text-muted" />
+                <item.icon className={cn("h-4 w-4 shrink-0 transition-colors", isActive(item.href) ? "text-primary-foreground" : "text-muted")} />
                 <span
                   className={cn(
                     "transition-all duration-200 whitespace-nowrap",
