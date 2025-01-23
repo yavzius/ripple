@@ -118,11 +118,11 @@ Here's a step-by-step breakdown of building the inbox, focusing on UI, data flow
 ## 9. File Attachments
 **Objective**: Allow sending/receiving files.
 
-- [ ] Steps:
-  - [ ] Add file upload button to `<MessageThread />`
-  - [ ] Upload file to Supabase Storage
-  - [ ] Insert file metadata into files table linked to `message_id`
-  - [ ] Display thumbnails for images, icons for PDFs
+- [x] Steps:
+  - [x] Add file upload button to `<MessageThread />`
+  - [x] Upload file to Supabase Storage
+  - [x] Insert file metadata into files table linked to `message_id`
+  - [x] Display thumbnails for images, icons for PDFs
 
 ## 10. Testing & QA
 **Objective**: Ensure all features work as expected.
