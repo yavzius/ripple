@@ -616,13 +616,51 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
               >
                 <div
                   className={cn(
-                    "max-w-[80%] rounded-lg p-4",
+                    "max-w-[80%] rounded-lg p-4 relative message-container",
                     message.sender_type === "customer"
                       ? "bg-gray-100"
                       : "bg-blue-100"
                   )}
                 >
-                  <p className="text-sm">{message.content}</p>
+                  {message.sender_type !== "customer" && (
+                    <div className="absolute top-2 right-2 flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={(e) => handleEditMessage(message.id, e)}
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => setMessageToDelete(message.id)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+                  {editingMessageId === message.id ? (
+                    <div style={{ width: editContainerWidth ? `${editContainerWidth}px` : 'auto' }}>
+                      <Textarea
+                        value={editedContent}
+                        onChange={(e) => setEditedContent(e.target.value)}
+                        className="mb-2"
+                      />
+                      <div className="flex justify-end gap-2">
+                        <Button size="sm" variant="outline" onClick={handleCancelEdit}>
+                          Cancel
+                        </Button>
+                        <Button size="sm" onClick={handleSaveEdit}>
+                          Save
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm">{message.content}</p>
+                  )}
                   {message.attachments?.map(attachment => (
                     <div key={attachment.id}>
                       {renderAttachment(attachment)}
