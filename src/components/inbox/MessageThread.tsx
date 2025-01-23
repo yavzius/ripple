@@ -610,44 +610,44 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
               <div
                 key={message.id}
                 className={cn(
-                  "flex flex-col",
+                  "flex flex-col relative group pt-8",
                   message.sender_type === "customer" ? "items-start" : "items-end"
                 )}
               >
+                {message.sender_type !== "customer" && editingMessageId !== message.id && (
+                  <div className="absolute top-0 right-0 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 bg-gray-100/90 hover:bg-gray-200/90"
+                      onClick={(e) => handleEditMessage(message.id, e)}
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 bg-gray-100/90 hover:bg-gray-200/90"
+                      onClick={() => setMessageToDelete(message.id)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
                 <div
                   className={cn(
-                    "max-w-[80%] rounded-lg p-4 relative message-container",
+                    "max-w-[80%] rounded-lg p-4 relative message-container w-full",
                     message.sender_type === "customer"
                       ? "bg-gray-100"
                       : "bg-blue-100"
                   )}
                 >
-                  {message.sender_type !== "customer" && (
-                    <div className="absolute top-2 right-2 flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={(e) => handleEditMessage(message.id, e)}
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => setMessageToDelete(message.id)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  )}
                   {editingMessageId === message.id ? (
-                    <div style={{ width: editContainerWidth ? `${editContainerWidth}px` : 'auto' }}>
+                    <div className="w-full">
                       <Textarea
                         value={editedContent}
                         onChange={(e) => setEditedContent(e.target.value)}
-                        className="mb-2"
+                        className="mb-2 w-full"
                       />
                       <div className="flex justify-end gap-2">
                         <Button size="sm" variant="outline" onClick={handleCancelEdit}>
