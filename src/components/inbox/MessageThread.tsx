@@ -5,9 +5,21 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Building2, User, Loader2 } from "lucide-react";
+import { Send, Building2, User, Loader2, CheckCircle2, Pencil, Trash2, Paperclip, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { analyzeCustomerSentiment as analyzeSentiment, generateCustomerSupportResponse } from "@/lib/langsmith-service";
+import { updateConversationStatus } from "@/lib/actions";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface MessageThreadProps {
   conversationId: string;
@@ -18,6 +30,14 @@ interface Message {
   content: string;
   sender_type: string;
   created_at: string | null;
+  attachments?: {
+    id: string;
+    file_name: string;
+    file_path: string;
+    content_type: string;
+    file_size: number;
+    url?: string;
+  }[];
 }
 
 interface ConversationDetails {
@@ -48,6 +68,13 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isAIProcessing, setIsAIProcessing] = useState(false);
+  const [isResolving, setIsResolving] = useState(false);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editedContent, setEditedContent] = useState("");
+  const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
+  const [editContainerWidth, setEditContainerWidth] = useState<number | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
 
   useEffect(() => {
     const fetchConversation = async () => {
@@ -79,16 +106,38 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
     const fetchMessages = async () => {
       const { data, error } = await supabase
         .from("messages")
-        .select("*")
+        .select(`
+          *,
+          attachments:message_attachments (
+            id,
+            file_name,
+            file_path,
+            content_type,
+            file_size
+          )
+        `)
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true });
 
       if (error) {
         console.error("Error fetching messages:", error);
+        toast.error("Failed to load messages");
         return;
       }
 
-      setMessages(data || []);
+      // Update messages with attachment URLs
+      const messagesWithAttachments = data?.map(message => ({
+        ...message,
+        attachments: message.attachments?.map(attachment => ({
+          ...attachment,
+          url: supabase.storage
+            .from('attachments')
+            .getPublicUrl(attachment.file_path)
+            .data.publicUrl
+        }))
+      })) || [];
+
+      setMessages(messagesWithAttachments);
       setIsLoading(false);
     };
 
@@ -107,16 +156,49 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
           filter: `conversation_id=eq.${conversationId}`,
         },
         async (payload) => {
-          const newMessage = payload.new as Message;
-          setMessages((prev) => [...prev, newMessage]);
+          // Skip if this is our own message (we'll handle it in handleSendMessage)
+          if (payload.new.sender_type === 'agent') return;
+
+          const { data: messageWithAttachments, error } = await supabase
+            .from("messages")
+            .select(`
+              *,
+              attachments:message_attachments (
+                id,
+                file_name,
+                file_path,
+                content_type,
+                file_size
+              )
+            `)
+            .eq("id", payload.new.id)
+            .single();
+
+          if (error) {
+            console.error("Error fetching message details:", error);
+            return;
+          }
+
+          const messageWithUrls = {
+            ...messageWithAttachments,
+            attachments: messageWithAttachments.attachments?.map(attachment => ({
+              ...attachment,
+              url: supabase.storage
+                .from('attachments')
+                .getPublicUrl(attachment.file_path)
+                .data.publicUrl
+            }))
+          };
+
+          setMessages(prev => [...prev, messageWithUrls]);
 
           // Process customer messages with AI
-          if (newMessage.sender_type === "customer" && conversation?.customer) {
+          if (messageWithUrls.sender_type === "customer" && conversation?.customer) {
             setIsAIProcessing(true);
             try {
               // Analyze sentiment
-              const happinessScore = await analyzeSentiment(newMessage.content, {
-                messageId: newMessage.id,
+              const happinessScore = await analyzeSentiment(messageWithUrls.content, {
+                messageId: messageWithUrls.id,
                 conversationId,
               });
 
@@ -129,7 +211,7 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
               // Generate AI response
               const aiResponse = await generateCustomerSupportResponse(
                 {
-                  messages: messages.concat(newMessage),
+                  messages: messages.concat(messageWithUrls),
                   customer: conversation.customer,
                   customer_company: conversation.customer.customer_company!,
                 },
@@ -164,7 +246,7 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
                   status: "open",
                   priority: "medium",
                   title: "AI Confidence Low - Human Review Required",
-                  description: `AI confidence (${aiResponse.confidence}) below threshold.\nLast message: ${newMessage.content}`,
+                  description: `AI confidence (${aiResponse.confidence}) below threshold.\nLast message: ${messageWithUrls.content}`,
                 });
               }
             } catch (error) {
@@ -182,21 +264,141 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
     };
   }, [conversationId]);
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const validFiles = files.filter(file => {
+      // Check file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(`File ${file.name} is too large. Maximum size is 5MB.`);
+        return false;
+      }
+      
+      // Check file type (images and PDFs only)
+      if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+        toast.error(`File ${file.name} is not supported. Only images and PDFs are allowed.`);
+        return false;
+      }
+      
+      return true;
+    });
+
+    setSelectedFiles(prev => [...prev, ...validFiles]);
+  };
+
+  const uploadFiles = async (messageId: string) => {
+    const uploadPromises = selectedFiles.map(async (file, index) => {
+      try {
+        setUploadProgress((index + 1) / selectedFiles.length * 100);
+        const filePath = `${conversationId}/${messageId}/${file.name}`;
+        
+        const { data, error } = await supabase.storage
+          .from('attachments')
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: true
+          });
+
+        if (error) {
+          console.error('Error uploading file:', error);
+          throw error;
+        }
+
+        // Create attachment record
+        const { error: attachmentError } = await supabase
+          .from('message_attachments')
+          .insert({
+            message_id: messageId,
+            file_path: filePath,
+            file_name: file.name,
+            file_size: file.size,
+            content_type: file.type
+          });
+
+        if (attachmentError) {
+          console.error('Error creating attachment record:', attachmentError);
+          throw attachmentError;
+        }
+
+        return data;
+      } catch (error) {
+        toast.error(`Failed to upload ${file.name}`);
+        throw error;
+      }
+    });
+
+    try {
+      await Promise.all(uploadPromises);
+      setSelectedFiles([]);
+      setUploadProgress(0);
+      toast.success('Files uploaded successfully');
+    } catch (error) {
+      console.error('Error uploading files:', error);
+    }
+  };
+
+  const removeSelectedFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || isSending) return;
+    if ((!newMessage.trim() && selectedFiles.length === 0) || isSending) return;
 
     setIsSending(true);
     try {
-      const { error } = await supabase.from("messages").insert({
-        conversation_id: conversationId,
-        content: newMessage,
-        sender_type: "agent",
-      });
+      // Insert message first
+      const { data: message, error } = await supabase
+        .from("messages")
+        .insert({
+          conversation_id: conversationId,
+          content: newMessage,
+          sender_type: "agent",
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Upload files if any
+      if (selectedFiles.length > 0) {
+        await uploadFiles(message.id);
+      }
+
+      // Fetch the updated message with attachments
+      const { data: updatedMessage, error: fetchError } = await supabase
+        .from("messages")
+        .select(`
+          *,
+          attachments:message_attachments (
+            id,
+            file_name,
+            file_path,
+            content_type,
+            file_size
+          )
+        `)
+        .eq("id", message.id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Add URLs to attachments
+      const messageWithUrls = {
+        ...updatedMessage,
+        attachments: updatedMessage.attachments?.map(attachment => ({
+          ...attachment,
+          url: supabase.storage
+            .from('attachments')
+            .getPublicUrl(attachment.file_path)
+            .data.publicUrl
+        }))
+      };
+
+      // Update messages state directly (skip subscription)
+      setMessages(prev => [...prev, messageWithUrls]);
       setNewMessage("");
     } catch (error) {
       console.error("Error sending message:", error);
+      toast.error("Failed to send message");
     } finally {
       setIsSending(false);
     }
@@ -209,6 +411,142 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
     }
   };
 
+  const handleResolve = async (status: 'open' | 'resolved' | 'closed') => {
+    if (!conversation || isResolving) return;
+    setIsResolving(true);
+    
+    try {
+      const { success, error } = await updateConversationStatus(conversation.id, status);
+      if (success) {
+        setConversation(prev => prev ? { ...prev, status } : null);
+        toast.success('Conversation updated successfully');
+      } else {
+        throw error;
+      }
+    } catch (error) {
+      toast.error('Failed to update conversation');
+      console.error('Error updating conversation:', error);
+    } finally {
+      setIsResolving(false);
+    }
+  };
+
+  const handleEditMessage = async (messageId: string, event: React.MouseEvent) => {
+    const message = messages.find(m => m.id === messageId);
+    if (!message) return;
+    
+    // Get the message container element and its width
+    const container = (event.currentTarget as HTMLElement).closest('.message-container') as HTMLDivElement;
+    if (container) {
+      setEditContainerWidth(container.offsetWidth);
+    }
+    
+    setEditingMessageId(messageId);
+    setEditedContent(message.content);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingMessageId) return;
+    
+    try {
+      const { error } = await supabase
+        .from("messages")
+        .update({ content: editedContent })
+        .eq("id", editingMessageId);
+
+      if (error) throw error;
+
+      setMessages(prev => prev.map(message => 
+        message.id === editingMessageId 
+          ? { ...message, content: editedContent }
+          : message
+      ));
+      
+      toast.success("Message updated successfully");
+    } catch (error) {
+      toast.error("Failed to update message");
+    } finally {
+      setEditingMessageId(null);
+      setEditedContent("");
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null);
+    setEditedContent("");
+  };
+
+  const handleDeleteMessage = async () => {
+    if (!messageToDelete) return;
+    
+    try {
+      const { error } = await supabase
+        .from("messages")
+        .delete()
+        .eq("id", messageToDelete);
+
+      if (error) throw error;
+
+      setMessages(prev => prev.filter(message => message.id !== messageToDelete));
+      toast.success("Message deleted successfully");
+    } catch (error) {
+      toast.error("Failed to delete message");
+    } finally {
+      setMessageToDelete(null);
+    }
+  };
+
+  const renderAttachment = (attachment: Message['attachments'][0]) => {
+    const isImage = attachment.content_type.startsWith('image/');
+    const fileUrl = attachment.url;
+
+    if (!fileUrl) return null;
+
+    if (isImage) {
+      return (
+        <a 
+          href={fileUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block max-w-[200px] mt-2"
+        >
+          <img 
+            src={fileUrl} 
+            alt={attachment.file_name}
+            className="rounded-md border border-gray-200"
+          />
+        </a>
+      );
+    }
+
+    return (
+      <a
+        href={fileUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 mt-2"
+      >
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+          />
+        </svg>
+        {attachment.file_name}
+        <span className="text-gray-500 text-xs">
+          ({Math.round(attachment.file_size / 1024)}KB)
+        </span>
+      </a>
+    );
+  };
+
   if (isLoading) {
     return <div className="p-4">Loading messages...</div>;
   }
@@ -218,25 +556,51 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
   }
 
   return (
-    <Card className="h-[calc(100vh-4rem)]">
-      <CardHeader className="border-b">
-        <div className="flex justify-between items-start">
-          <div className="space-y-1">
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-muted-foreground" />
-              {conversation.customer?.customer_company?.name || "Unknown Company"}
-            </CardTitle>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <User className="h-4 w-4" />
-              {conversation.customer?.first_name} {conversation.customer?.last_name}
-            </div>
-          </div>
+    <div className="flex flex-col h-full">
+      <CardHeader className="pb-4">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Badge variant="outline">{conversation.channel}</Badge>
-            <Badge className={statusColors[conversation.status as keyof typeof statusColors]}>
-              {conversation.status}
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="w-5 h-5" />
+              {conversation?.customer?.customer_company?.name || 'Loading...'}
+            </CardTitle>
+            <Badge variant="outline" className={cn(
+              conversation?.status && statusColors[conversation.status as keyof typeof statusColors]
+            )}>
+              {conversation?.status || 'Loading...'}
             </Badge>
           </div>
+          {conversation?.status === 'resolved' ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleResolve('open')}
+              disabled={isResolving}
+              className="gap-2"
+            >
+              {isResolving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4" />
+              )}
+              Unresolve
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleResolve('resolved')}
+              disabled={isResolving}
+              className="gap-2"
+            >
+              {isResolving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4" />
+              )}
+              Resolve
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent className="flex flex-col h-[calc(100%-8rem)]">
@@ -246,34 +610,28 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
               <div
                 key={message.id}
                 className={cn(
-                  "flex",
-                  message.sender_type === "agent" || message.sender_type === "ai"
-                    ? "justify-end"
-                    : "justify-start"
+                  "flex flex-col",
+                  message.sender_type === "customer" ? "items-start" : "items-end"
                 )}
               >
                 <div
                   className={cn(
                     "max-w-[80%] rounded-lg p-4",
-                    message.sender_type === "agent" || message.sender_type === "ai"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted"
+                    message.sender_type === "customer"
+                      ? "bg-gray-100"
+                      : "bg-blue-100"
                   )}
                 >
-                  <div className="text-sm mb-1">
-                    {message.sender_type === "agent"
-                      ? "Support Agent"
-                      : message.sender_type === "ai"
-                      ? "AI Assistant"
-                      : "Customer"}
-                  </div>
-                  <div className="break-words">{message.content}</div>
-                  <div className="text-xs opacity-70 mt-2">
-                    {message.created_at
-                      ? new Date(message.created_at).toLocaleTimeString()
-                      : ""}
-                  </div>
+                  <p className="text-sm">{message.content}</p>
+                  {message.attachments?.map(attachment => (
+                    <div key={attachment.id}>
+                      {renderAttachment(attachment)}
+                    </div>
+                  ))}
                 </div>
+                <span className="text-xs text-gray-500 mt-1">
+                  {new Date(message.created_at!).toLocaleTimeString()}
+                </span>
               </div>
             ))}
             {isAIProcessing && (
@@ -286,26 +644,92 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
             )}
           </div>
         </ScrollArea>
-        <div className="border-t pt-4 mt-auto">
+        <div className="border-t pt-4 mt-auto space-y-2">
+          {/* Show selected files */}
+          {selectedFiles.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {selectedFiles.map((file, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-2 bg-gray-100 rounded-md p-2 text-sm"
+                >
+                  <Paperclip className="h-4 w-4 text-gray-500" />
+                  <span className="max-w-[150px] truncate">{file.name}</span>
+                  <button
+                    onClick={() => removeSelectedFile(index)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Upload progress */}
+          {uploadProgress > 0 && (
+            <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+              <div
+                className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+          )}
+
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => document.getElementById('file-upload')?.click()}
+              disabled={isSending}
+              className="shrink-0"
+            >
+              <Paperclip className="h-4 w-4" />
+            </Button>
+            <input
+              id="file-upload"
+              type="file"
+              className="hidden"
+              multiple
+              accept="image/*,.pdf"
+              onChange={handleFileSelect}
+            />
             <Textarea
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyDown={handleKeyPress}
               placeholder="Type your message..."
-              className="resize-none"
-              rows={2}
+              className="flex-1 min-h-[40px]"
+              rows={1}
             />
             <Button
               onClick={handleSendMessage}
-              disabled={!newMessage.trim() || isSending}
-              size="icon"
+              disabled={(!newMessage.trim() && selectedFiles.length === 0) || isSending}
+              className="shrink-0"
             >
-              <Send className="h-4 w-4" />
+              {isSending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
             </Button>
           </div>
         </div>
       </CardContent>
-    </Card>
+      <AlertDialog open={messageToDelete !== null} onOpenChange={() => setMessageToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Message</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this AI message? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteMessage}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 } 

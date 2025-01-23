@@ -308,3 +308,46 @@ export async function getCompanyWithCustomers(id: string, accountId: string) {
     throw error;
   }
 }
+
+export async function updateConversationStatus(id: string, status: 'open' | 'resolved' | 'closed') {
+  try {
+    const { error } = await supabase
+      .from('conversations')
+      .update({ 
+        status,
+        ...(status === 'resolved' ? { resolved_at: new Date().toISOString() } : {})
+      })
+      .eq('id', id);
+
+    if (error) throw error;
+    return { success: true };
+  } catch (error) {
+    handleError(error as Error);
+    return { success: false, error };
+  }
+}
+
+export async function mergeConversations(sourceId: string, targetId: string) {
+  const { error: messagesError } = await supabase
+    .from('messages')
+    .update({ conversation_id: targetId })
+    .eq('conversation_id', sourceId);
+
+  if (messagesError) {
+    handleError(messagesError);
+    return { error: messagesError };
+  }
+
+  // Delete the source conversation after moving all messages
+  const { error: deleteError } = await supabase
+    .from('conversations')
+    .delete()
+    .eq('id', sourceId);
+
+  if (deleteError) {
+    handleError(deleteError);
+    return { error: deleteError };
+  }
+
+  return { error: null };
+}

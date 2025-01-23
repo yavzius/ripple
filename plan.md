@@ -42,39 +42,47 @@ Here's a step-by-step breakdown of building the inbox, focusing on UI, data flow
 - [x] Fetch messages where `conversation_id = selectedConversationId`
 - [x] Update URL path (e.g., `/inbox/conv_123`)
 
-## 4. Auto-Resolution by AI
-**Objective**: AI resolves conversations if confidence ≥ 80%.
+## 4. Auto-Resolution by AI ✓
+**Objective**: AI processes new messages via edge functions.
 
-- [ ] Workflow:
-  - [ ] For each new message:
-    - [ ] Use OpenAI to generate response + calculate confidence score
-    - [ ] If confidence ≥ 80%:
-      - [ ] Insert AI response into messages table
-      - [ ] Update conversation status to "resolved"
-    - [ ] Else:
-      - [ ] Create a ticket (next step)
+- [x] Workflow:
+  - [x] Database webhook triggers on message insert:
+    - [x] `auto-responder`: Generates AI responses using GPT-4
+      - [x] Fetches conversation context
+      - [x] Generates contextual response
+      - [x] Inserts AI response into messages table
+    - [x] `support-assistant`: Analyzes sentiment and updates scores
+      - [x] Calculates happiness score (0-1)
+      - [x] Updates message with sentiment score
+  - [x] LangSmith integration for tracking AI operations
+  - [x] Response generation features:
+    - [x] Matches user's message length
+    - [x] Mirrors tone and formality
+    - [x] Uses simple language (70% 1-2 syllables)
+    - [x] Contextual emoji usage
+    - [x] Natural conversation flow
 
 ## 5. Ticket Auto-Assignment
 **Objective**: Assign tickets to agents based on issue type.
 
-- [ ] Steps:
-  - [ ] Use OpenAI to classify issue (e.g., "website_issue", "billing")
-  - [ ] Query roles table to find agents tagged with issue type
-  - [ ] Assign ticket to first available agent
-  - [ ] Insert ticket with:
-    - [ ] `assigned_to = agent ID`
-    - [ ] `description = AI-generated steps`
+- [x] Steps:
+  - [x] Add ticket classification to auto-responder function:
+    - [x] Analyze message content for issue type
+    - [x] Calculate confidence score
+    - [x] If confidence < 80%, create ticket
 
 ## 6. Agent Actions
 **Objective**: Let agents manually resolve or override AI.
 
-- [ ] Manual Resolution:
-  - [ ] Add "Resolve" button in `<MessageThread />`
-  - [ ] On click: Update conversation status to "resolved"
+- [x] Manual Resolution:
+  - [x] Add "Resolve" button in `<MessageThread />`
+  - [x] On click: Update conversation status to "resolved"
 
 - [ ] Override AI:
-  - [ ] Allow agents to edit/delete AI messages
-  - [ ] Add permissions check
+  - [ ] Allow agents to edit/delete AI messages:
+    - [x] Add edit/delete buttons for AI messages
+    - [x] Add edit mode with textarea for message content
+    - [x] Add confirmation dialog for deletion
 
 ## 7. Real-Time Updates ✓
 **Objective**: Show new messages instantly.
@@ -99,12 +107,13 @@ Here's a step-by-step breakdown of building the inbox, focusing on UI, data flow
 ## 8. Merge Conversations
 **Objective**: Let agents merge duplicate threads.
 
-- [ ] Steps:
-  - [ ] Add "Merge" button in `<ConversationList />`
-  - [ ] On click:
-    - [ ] Fetch conversations with same `customer_company_id`
-    - [ ] Let agent select target conversation
-    - [ ] Update all messages to use target `conversation_id`
+- [x] Steps:
+  - [x] Add "Merge" button in `<ConversationList />`
+  - [x] On click:
+    - [x] Fetch conversations with same `customer_company_id`
+    - [x] Let agent select target conversation
+    - [x] Update all messages to use target `conversation_id`
+    - [x] Hide merge button when no eligible conversations exist
 
 ## 9. File Attachments
 **Objective**: Allow sending/receiving files.

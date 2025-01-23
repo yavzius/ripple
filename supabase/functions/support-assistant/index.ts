@@ -1,8 +1,24 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.0"
-import { corsHeaders } from '../_shared/cors.ts'
-import OpenAI from "https://esm.sh/openai@4.24.1"
-import { Client } from "https://esm.sh/langsmith@0.1.3"
+import { serve } from "std/http/server";
+import { corsHeaders } from '../_shared/cors.ts';
+import OpenAI from "openai";
+import { Client as LangSmith } from "langsmith";
+import { createClient } from '@supabase/supabase-js'
+
+interface WebhookPayload {
+  type: 'INSERT' | 'UPDATE' | 'DELETE';
+  table: string;
+  schema: string;
+  record: {
+    id: string;
+    content: string;
+    sender_type: string;
+    conversation_id: string;
+    created_at: string;
+    sentiment_score: number | null;
+  };
+  old_record: null | any;
+}
+
 
 interface GenerateSupportResponsePayload {
   conversationContext: {
@@ -25,243 +41,262 @@ interface AnalyzeSentimentPayload {
   };
 }
 
+// Initialize clients
+const openai = new OpenAI({
+  apiKey: Deno.env.get('OPENAI_API_KEY'),
+});
+
+const langsmith = new LangSmith({
+  apiUrl: Deno.env.get('LANGSMITH_ENDPOINT') || "https://api.smith.langchain.com",
+  apiKey: Deno.env.get('LANGSMITH_API_KEY'),
+});
+
+const projectName = Deno.env.get('LANGSMITH_PROJECT') || "default";
+
+// Initialize Supabase client
+const supabaseClient = createClient(
+  Deno.env.get('SUPABASE_URL') || '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+);
+
+// Helper function to create and manage Langsmith runs
+async function withLangsmithTracking<T>(
+  name: string,
+  inputs: any,
+  operation: () => Promise<T>
+): Promise<T> {
+  const runId = crypto.randomUUID();
+  
+  await langsmith.createRun({
+    name,
+    id: runId,
+    run_type: "chain",
+    inputs,
+    project_name: projectName,
+  });
+
+  try {
+    const result = await operation();
+    await langsmith.updateRun(runId, {
+      outputs: result,
+      end_time: Date.now(),
+    });
+    return result;
+  } catch (error) {
+    await langsmith.updateRun(runId, {
+      error: error instanceof Error ? error.message : "Unknown error",
+      end_time: Date.now(),
+    });
+    throw error;
+  }
+}
+
 serve(async (req) => {
-  // Handle CORS
+  console.log('Received request:', {
+    method: req.method,
+    url: req.url,
+    headers: Object.fromEntries(req.headers.entries())
+  });
+
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    console.log('Handling CORS preflight request');
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    // Get the authorization header
-    const authHeader = req.headers.get('Authorization')?.split(' ')[1]
-    if (!authHeader) {
-      throw new Error('No authorization header')
+    // Verify authorization
+    const authHeader = req.headers.get('Authorization');
+    if (authHeader !== `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`) {
+      console.error('Authorization failed:', { 
+        received: authHeader?.substring(0, 10) + '...',
+        expected: `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')?.substring(0, 10)}...`
+      });
+      return new Response('Unauthorized', { status: 401 });
     }
 
-    // Create authenticated Supabase client
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: { headers: { Authorization: `Bearer ${authHeader}` } },
-      }
-    )
-
-    // Get the authenticated user
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseClient.auth.getUser(authHeader)
-
-    if (userError || !user) {
-      throw new Error('Not authenticated')
-    }
-
-    // Initialize OpenAI client
-    const openai = new OpenAI({
-      apiKey: Deno.env.get('OPENAI_API_KEY'),
-    });
-
-    // Initialize LangSmith client
-    const langsmith = new Client({
-      apiUrl: Deno.env.get('LANGSMITH_ENDPOINT') || "https://api.smith.langchain.com",
-      apiKey: Deno.env.get('LANGSMITH_API_KEY'),
-    });
-
-    const projectName = Deno.env.get('LANGSMITH_PROJECT') || "ripple";
-
-    // Get the request path and payload
-    const { pathname } = new URL(req.url);
     const payload = await req.json();
-
-    // Handle different endpoints
-    switch (pathname) {
-      case "/generate-response": {
-        const { conversationContext, metadata } = payload as GenerateSupportResponsePayload;
-        
-        // Generate a unique run ID
-        const runId = crypto.randomUUID();
-        
-        // Start a new run in LangSmith
-        await langsmith.createRun({
-          name: "support_response_generation",
-          id: runId,
-          run_type: "chain",
-          inputs: {
-            conversation: conversationContext,
-            metadata: metadata,
-          },
-          project_name: projectName,
-          extra: {
-            conversation_id: metadata.conversationId,
-          },
+    console.log('Received payload:', JSON.stringify(payload, null, 2));
+    
+    // Handle webhook payload
+    if ('type' in payload && payload.type === 'INSERT') {
+      const webhookPayload = payload as WebhookPayload;
+      const record = webhookPayload.record;
+      
+      console.log('Processing webhook payload:', {
+        type: webhookPayload.type,
+        table: webhookPayload.table,
+        messageId: record.id,
+        senderType: record.sender_type,
+        sentimentScore: record.sentiment_score
+      });
+      
+      // Only process messages table webhooks
+      if (webhookPayload.table !== 'messages') {
+        console.log('Ignoring non-messages table webhook:', webhookPayload.table);
+        return new Response(JSON.stringify({ message: 'Ignored - not messages table' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
+      // Ensure this is a customer message that hasn't been analyzed
+      if (record.sender_type === 'customer' && record.sentiment_score === null) {
+        console.log('Processing customer message for sentiment analysis:', {
+          messageId: record.id,
+          content: record.content.substring(0, 50) + '...' // Log first 50 chars only
         });
 
-        try {
-          // Format conversation history for context
-          const history = conversationContext.messages
-            .map((msg) => `${msg.sender_type}: ${msg.content}`)
-            .join("\n");
-
-          const response = await openai.chat.completions.create({
-            model: "gpt-4",
-            messages: [
-              {
-                role: "system",
-                content: `You are a customer support AI assistant.
-                         Analyze the conversation and provide a helpful response.
-                         Also provide a confidence score (0-1) indicating how certain you are about your response.
-                         Customer: ${conversationContext.customer.first_name} ${conversationContext.customer.last_name}
-                         Company: ${conversationContext.customer_company.name}`,
-              },
-              {
-                role: "user",
-                content: `Conversation history:\n${history}\n\nProvide response and confidence score.`,
-              },
-            ],
-            functions: [
-              {
-                name: "provide_response",
-                parameters: {
-                  type: "object",
-                  properties: {
-                    response: { type: "string" },
-                    confidence: { type: "number", minimum: 0, maximum: 1 },
-                    reasoning: { type: "string" },
-                  },
-                  required: ["response", "confidence", "reasoning"],
+        // Perform sentiment analysis
+        const result = await withLangsmithTracking("analyze_sentiment", 
+          { message: record.content }, 
+          async () => {
+            console.log('Calling OpenAI for sentiment analysis');
+            const completion = await openai.chat.completions.create({
+              model: "gpt-4",
+              messages: [
+                {
+                  role: "system",
+                  content: "Analyze the sentiment of the following message. Return a score between 0 (negative) and 1 (positive)."
                 },
-              },
-            ],
-            function_call: { name: "provide_response" },
-          });
+                { role: "user", content: record.content }
+              ],
+              max_tokens: 10
+            });
 
-          const functionCall = response.choices[0].message.function_call;
-          const { response: aiResponse, confidence, reasoning } = JSON.parse(
-            functionCall!.arguments
-          );
+            const scoreText = completion.choices[0].message.content || '0';
+            const happiness_score = parseFloat(scoreText);
+            
+            console.log('Sentiment analysis result:', {
+              messageId: record.id,
+              score: happiness_score,
+              rawScore: scoreText
+            });
 
-          // Update LangSmith run with the results
-          await langsmith.updateRun(runId, {
-            outputs: {
-              response: aiResponse,
-              confidence,
-              reasoning,
-            },
-            end_time: Date.now(),
-          });
+            // Update the message with the sentiment score
+            console.log('Updating message with sentiment score');
+            const { error: updateError } = await supabaseClient
+              .from('messages')
+              .update({ sentiment_score: happiness_score })
+              .eq('id', record.id);
 
-          return new Response(
-            JSON.stringify({ response: aiResponse, confidence }),
-            {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 200,
+            if (updateError) {
+              console.error('Error updating message:', updateError);
+              throw updateError;
             }
-          );
-        } catch (error) {
-          // Log error to LangSmith
-          await langsmith.updateRun(runId, {
-            error: error instanceof Error ? error.message : "Unknown error",
-            end_time: Date.now(),
-          });
-          throw error;
-        }
-      }
 
-      case "/analyze-sentiment": {
-        const { message, metadata } = payload as AnalyzeSentimentPayload;
-        
-        // Generate a unique run ID
-        const runId = crypto.randomUUID();
-        
-        await langsmith.createRun({
-          name: "sentiment_analysis",
-          id: runId,
-          run_type: "chain",
-          inputs: {
-            message,
-            metadata,
-          },
-          project_name: projectName,
-          extra: {
-            message_id: metadata.messageId,
-            conversation_id: metadata.conversationId,
-          },
+            return { 
+              happiness_score, 
+              message_id: record.id 
+            };
         });
 
-        try {
-          const response = await openai.chat.completions.create({
-            model: "gpt-4",
-            messages: [
-              {
-                role: "system",
-                content: "You are a sentiment analysis expert. Analyze the following message and provide a happiness score between 0 and 1, where 0 is very unhappy and 1 is very happy.",
-              },
-              {
-                role: "user",
-                content: message,
-              },
-            ],
-            functions: [
-              {
-                name: "analyze_sentiment",
-                parameters: {
-                  type: "object",
-                  properties: {
-                    happiness_score: { type: "number", minimum: 0, maximum: 1 },
-                    reasoning: { type: "string" },
-                  },
-                  required: ["happiness_score", "reasoning"],
-                },
-              },
-            ],
-            function_call: { name: "analyze_sentiment" },
-          });
-
-          const functionCall = response.choices[0].message.function_call;
-          const { happiness_score, reasoning } = JSON.parse(functionCall!.arguments);
-
-          // Update LangSmith run with the results
-          await langsmith.updateRun(runId, {
-            outputs: {
-              happiness_score,
-              reasoning,
-            },
-            end_time: Date.now(),
-          });
-
-          return new Response(
-            JSON.stringify({ happiness_score }),
-            {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 200,
-            }
-          );
-        } catch (error) {
-          // Log error to LangSmith
-          await langsmith.updateRun(runId, {
-            error: error instanceof Error ? error.message : "Unknown error",
-            end_time: Date.now(),
-          });
-          throw error;
-        }
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      } else {
+        console.log('Skipping message:', {
+          reason: record.sentiment_score !== null ? 'already analyzed' : 'not customer message',
+          messageId: record.id,
+          senderType: record.sender_type
+        });
       }
-
-      default:
-        return new Response(
-          JSON.stringify({ error: 'Not found' }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 404,
-          }
-        );
     }
+    
+    // Handle direct API calls with action
+    if ('action' in payload) {
+      const { action, ...actionPayload } = payload;
+      console.log('Received request:', { action, actionPayload }) // Debug log
+
+      if (!action) {
+        throw new Error('Action is required')
+      }
+
+      switch (action) {
+        case 'generate-response': {
+          const { conversationContext, metadata } = actionPayload;
+          if (!conversationContext || !metadata) {
+            throw new Error('Missing required fields');
+          }
+        
+          const result = await withLangsmithTracking("generate_response", { conversationContext }, async () => {
+            const messages = conversationContext.messages.map(msg => ({
+              role: msg.sender_type === 'customer' ? 'user' : 'assistant',
+              content: msg.content
+            }));
+        
+            const completion = await openai.chat.completions.create({
+              model: "gpt-4",
+              messages: [
+                {
+                  role: "system",
+                  content: `You are a helpful customer support assistant for ${conversationContext.customer_company.name}.`
+                },
+                ...messages
+              ]
+            });
+        
+            return {
+              response: completion.choices[0].message.content,
+              confidence: completion.choices[0].finish_reason === 'stop' ? 0.9 : 0.5
+            };
+          });
+        
+          return new Response(JSON.stringify(result), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        
+        case 'analyze-sentiment': {
+          const { message, metadata } = actionPayload;
+          if (!message || !metadata) {
+            throw new Error('Missing required fields');
+          }
+        
+          const result = await withLangsmithTracking("analyze_sentiment", { message }, async () => {
+            const completion = await openai.chat.completions.create({
+              model: "gpt-4",
+              messages: [
+                {
+                  role: "system",
+                  content: "Analyze the sentiment of the following message. Return a score between 0 (negative) and 1 (positive)."
+                },
+                { role: "user", content: message }
+              ]
+            });
+
+            const score = parseFloat(completion?.choices[0].message.content || '0');
+            return { happiness_score: score };
+          });
+        
+          return new Response(JSON.stringify(result), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+
+        default:
+          throw new Error(`Unknown action: ${action}`)
+      }
+    }
+
+    // If we get here, the request wasn't handled
+    return new Response(JSON.stringify({ message: 'No action required' }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+
   } catch (error) {
+    console.error('Error in support-assistant:', {
+      error: error.message,
+      stack: error.stack,
+      details: error.toString()
+    });
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({
+        error: error.message,
+        details: error.toString()
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
+        status: 400,
       }
     );
   }

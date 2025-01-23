@@ -72,6 +72,21 @@ export type Database = {
           },
         ]
       }
+      app_settings: {
+        Row: {
+          key: string
+          value: string | null
+        }
+        Insert: {
+          key: string
+          value?: string | null
+        }
+        Update: {
+          key?: string
+          value?: string | null
+        }
+        Relationships: []
+      }
       channels: {
         Row: {
           account_id: string | null
@@ -276,27 +291,118 @@ export type Database = {
         }
         Relationships: []
       }
+      edge_function_calls: {
+        Row: {
+          called_at: string | null
+          http_status: number | null
+          id: number
+          message_id: string | null
+          response_body: string | null
+        }
+        Insert: {
+          called_at?: string | null
+          http_status?: number | null
+          id?: number
+          message_id?: string | null
+          response_body?: string | null
+        }
+        Update: {
+          called_at?: string | null
+          http_status?: number | null
+          id?: number
+          message_id?: string | null
+          response_body?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "edge_function_calls_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      function_logs: {
+        Row: {
+          id: number
+          message_id: string | null
+          triggered_at: string | null
+        }
+        Insert: {
+          id?: number
+          message_id?: string | null
+          triggered_at?: string | null
+        }
+        Update: {
+          id?: number
+          message_id?: string | null
+          triggered_at?: string | null
+        }
+        Relationships: []
+      }
+      message_attachments: {
+        Row: {
+          content_type: string
+          created_at: string | null
+          file_name: string
+          file_path: string
+          file_size: number
+          id: string
+          message_id: string | null
+        }
+        Insert: {
+          content_type: string
+          created_at?: string | null
+          file_name: string
+          file_path: string
+          file_size: number
+          id?: string
+          message_id?: string | null
+        }
+        Update: {
+          content_type?: string
+          created_at?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_attachments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string
-          conversation_id: string | null
+          conversation_id: string
           created_at: string | null
           id: string
-          sender_type: string | null
+          sender_type: string
+          sentiment_score: number | null
         }
         Insert: {
           content: string
-          conversation_id?: string | null
+          conversation_id: string
           created_at?: string | null
           id?: string
-          sender_type?: string | null
+          sender_type: string
+          sentiment_score?: number | null
         }
         Update: {
           content?: string
-          conversation_id?: string | null
+          conversation_id?: string
           created_at?: string | null
           id?: string
-          sender_type?: string | null
+          sender_type?: string
+          sentiment_score?: number | null
         }
         Relationships: [
           {

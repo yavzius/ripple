@@ -9,7 +9,9 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "types": "npx supabase gen types typescript --project-id 'bnxxzhsmkzndgwqvicpj' --schema public > database.types.ts"
+    "types": "npx supabase gen types typescript --project-id 'bnxxzhsmkzndgwqvicpj' --schema public > database.types.ts",
+    "functions": "supabase functions deploy",
+    "test:ai": "tsx src/lib/__tests__/langsmith-service.test.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -70,6 +72,7 @@
     "sonner": "^1.5.0",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
+    "tsx": "^4.19.2",
     "vaul": "^0.9.3",
     "zod": "^3.23.8",
     "zustand": "^5.0.3"

@@ -4,6 +4,10 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { mergeConversations } from "@/lib/actions";
+import { toast } from "sonner";
 
 interface ConversationListProps {
   accountId: string;
@@ -48,68 +52,44 @@ const happinessScoreColors = {
 export function ConversationList({ accountId, selectedId, onSelect, onFirstLoad }: ConversationListProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
+  const [sourceConversationId, setSourceConversationId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchConversations = async () => {
+  const fetchConversations = async () => {
+    try {
       const { data, error } = await supabase
-        .from("conversations")
+        .from('conversations')
         .select(`
           *,
-          customer:customer_id (
-            id,
-            first_name,
-            last_name,
-            customer_company:customer_company_id (
-              id,
-              name
-            )
+          customer:customer_id(*,
+            customer_company:customer_company_id(*)
           ),
-          messages (
+          messages(
             id,
             content,
             created_at
           )
         `)
-        .eq("account_id", accountId)
-        .order("created_at", { ascending: false });
+        .eq('account_id', accountId)
+        .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error("Error fetching conversations:", error);
-        return;
-      }
+      if (error) throw error;
 
       setConversations(data || []);
-      setIsLoading(false);
-
-      // If there are conversations and no selected ID, notify parent of first conversation
-      if (data?.length > 0 && !selectedId && onFirstLoad) {
+      if (data && data.length > 0 && onFirstLoad && !selectedId) {
         onFirstLoad(data[0].id);
       }
-    };
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+      toast.error('Failed to load conversations');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchConversations();
-
-    // Subscribe to new conversations
-    const channel = supabase
-      .channel("conversations")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "conversations",
-          filter: `account_id=eq.${accountId}`,
-        },
-        () => {
-          fetchConversations();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      channel.unsubscribe();
-    };
-  }, [accountId, selectedId, onFirstLoad]);
+  }, [accountId]);
 
   const getHappinessColor = (score: number | null) => {
     if (score === null) return happinessScoreColors.medium;
@@ -124,53 +104,125 @@ export function ConversationList({ accountId, selectedId, onSelect, onFirstLoad 
     return lastMessage.content;
   };
 
+  const hasMergeableConversations = (conversation: Conversation) => {
+    return conversations.some(conv => 
+      conv.id !== conversation.id && 
+      conv.customer?.customer_company?.id === conversation.customer?.customer_company?.id
+    );
+  };
+
+  const handleMergeClick = (conversationId: string) => {
+    setSourceConversationId(conversationId);
+    setIsMergeModalOpen(true);
+  };
+
+  const handleMergeConfirm = async (targetId: string) => {
+    if (!sourceConversationId) return;
+    
+    const { error } = await mergeConversations(sourceConversationId, targetId);
+    
+    if (error) {
+      toast.error("Failed to merge conversations");
+    } else {
+      toast.success("Conversations merged successfully");
+      fetchConversations();
+    }
+    
+    setIsMergeModalOpen(false);
+    setSourceConversationId(null);
+  };
+
   if (isLoading) {
     return <div className="p-4">Loading conversations...</div>;
   }
 
   return (
-    <ScrollArea className="h-[calc(100vh-4rem)]">
-      <div className="space-y-2 p-4">
-        {conversations.map((conversation) => (
-          <Card
-            key={conversation.id}
-            className={cn(
-              "p-4 cursor-pointer hover:bg-muted/50 transition-colors",
-              selectedId === conversation.id && "bg-muted"
-            )}
-            onClick={() => onSelect(conversation.id)}
-          >
-            <div className="flex justify-between items-start mb-2">
-              <div>
-                <div className="font-medium">
-                  {conversation.customer?.customer_company?.name || "Unknown Company"}
+    <>
+      <ScrollArea className="h-[calc(100vh-4rem)]">
+        <div className="space-y-2 p-4">
+          {conversations.map((conversation) => (
+            <Card
+              key={conversation.id}
+              className={cn(
+                "p-4 cursor-pointer hover:bg-muted/50 transition-colors",
+                selectedId === conversation.id && "bg-muted"
+              )}
+              onClick={() => onSelect(conversation.id)}
+            >
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <div className="font-medium">
+                    {conversation.customer?.customer_company?.name || "Unknown Company"}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {conversation.customer?.first_name} {conversation.customer?.last_name}
+                  </div>
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  {conversation.customer?.first_name} {conversation.customer?.last_name}
+                <div className="flex gap-2">
+                  {hasMergeableConversations(conversation) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMergeClick(conversation.id);
+                      }}
+                    >
+                      Merge
+                    </Button>
+                  )}
+                  <Badge className={statusColors[conversation.status as keyof typeof statusColors]}>
+                    {conversation.status}
+                  </Badge>
                 </div>
               </div>
-              <Badge className={statusColors[conversation.status as keyof typeof statusColors]}>
-                {conversation.status}
-              </Badge>
-            </div>
-            <div className="text-sm text-muted-foreground line-clamp-2">
-              {getLastMessage(conversation)}
-            </div>
-            <div className="mt-2 flex justify-between items-center text-xs">
-              {conversation.happiness_score !== null && (
-                <span className={cn("font-medium", getHappinessColor(conversation.happiness_score))}>
-                  Score: {Math.round(conversation.happiness_score * 100)}%
+              <div className="text-sm text-muted-foreground line-clamp-2">
+                {getLastMessage(conversation)}
+              </div>
+              <div className="mt-2 flex justify-between items-center text-xs">
+                {conversation.happiness_score !== null && (
+                  <span className={cn("font-medium", getHappinessColor(conversation.happiness_score))}>
+                    Score: {Math.round(conversation.happiness_score * 100)}%
+                  </span>
+                )}
+                <span className={cn("text-muted-foreground", conversation.happiness_score === null && "ml-auto")}>
+                  {conversation.created_at
+                    ? new Date(conversation.created_at).toLocaleDateString()
+                    : "Unknown date"}
                 </span>
-              )}
-              <span className={cn("text-muted-foreground", conversation.happiness_score === null && "ml-auto")}>
-                {conversation.created_at
-                  ? new Date(conversation.created_at).toLocaleDateString()
-                  : "Unknown date"}
-              </span>
-            </div>
-          </Card>
-        ))}
-      </div>
-    </ScrollArea>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </ScrollArea>
+
+      <Dialog open={isMergeModalOpen} onOpenChange={setIsMergeModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Select conversation to merge into</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 mt-4">
+            {conversations
+              .filter((conv) => conv.id !== sourceConversationId && 
+                conv.customer?.customer_company?.id === 
+                conversations.find(c => c.id === sourceConversationId)?.customer?.customer_company?.id)
+              .map((conversation) => (
+                <Card
+                  key={conversation.id}
+                  className="p-4 cursor-pointer hover:bg-gray-50"
+                  onClick={() => handleMergeConfirm(conversation.id)}
+                >
+                  <h3 className="font-medium">
+                    {conversation.customer?.customer_company?.name}
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    {getLastMessage(conversation)}
+                  </p>
+                </Card>
+              ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 } 

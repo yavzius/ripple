@@ -19,12 +19,16 @@ export async function generateCustomerSupportResponse(
 ): Promise<AIResponse> {
   const { data, error } = await supabase.functions.invoke('support-assistant', {
     body: {
+      action: 'generate-response',
       conversationContext,
       metadata,
     },
   });
 
-  if (error) throw error;
+  if (error) {
+    console.error('Support assistant error:', error);
+    throw error;
+  }
   return data;
 }
 
@@ -35,13 +39,17 @@ export async function analyzeCustomerSentiment(
     conversationId: string;
   }
 ): Promise<number> {
-  const { data, error } = await supabase.functions.invoke('sentiment-analysis', {
+  const { data, error } = await supabase.functions.invoke('support-assistant', {
     body: {
+      action: 'analyze-sentiment',
       message,
       metadata,
     },
   });
 
-  if (error) throw error;
+  if (error) {
+    console.error('Sentiment analysis error:', error);
+    throw error;
+  }
   return data.happiness_score;
 } 
