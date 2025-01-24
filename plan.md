@@ -2,19 +2,19 @@
 
 ## 1. Enhance Existing Settings UI
 ### Update User Management Section
-- [ ] Modify existing Dialog form in Settings.tsx:
-  - [ ] Required fields:
-    - [ ] Email (required)
-    - [ ] First Name (required)
-    - [ ] Last Name (optional)
-    - [ ] Role (required)
-  - [ ] Add form validation using react-hook-form:
-    - [ ] Email format validation
-    - [ ] Required field checks
-  - [ ] Update loading states during submission
+- [x] Modify existing Dialog form in Settings.tsx:
+  - [x] Required fields:
+    - [x] Email (required)
+    - [x] First Name (required)
+    - [x] Last Name (optional)
+    - [x] Role (required)
+  - [x] Add form validation using react-hook-form:
+    - [x] Email format validation
+    - [x] Required field checks
+  - [x] Update loading states during submission
 
 ### Admin Access Control
-- [ ] Add role verification to Settings page:
+- [x] Add role verification to Settings page:
   ```typescript
   const { workspace } = useWorkspace();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -37,86 +37,60 @@
     checkAdminStatus();
   }, [workspace]);
   ```
-- [ ] Hide "Add User" button for non-admins
-- [ ] Redirect non-admins away from Settings page
+- [x] Hide "Add User" button for non-admins
 
 ## 2. Backend Integration
-### Update Form Submission
-- [ ] Modify existing onSubmit handler:
-  ```typescript
-  const onSubmit = async (data: UserFormData) => {
-    try {
-      // 1. Verify admin status
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || !workspace) return;
+### Create Admin Auth Client
+- [x] Create a secure Edge Function for admin auth operations:
+  - [x] Set up service role authentication
+  - [x] Disable token refresh and session persistence
+  - [x] Never expose service role key in the browser
 
-      // 2. Check for existing user/account association
-      const { data: existingUser } = await supabase
-        .from('accounts_users')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('account_id', workspace.id)
-        .single();
-
-      if (existingUser) {
-        toast.error("User already has access to this account");
-        return;
+### Update User Creation Flow
+- [x] Create Edge Function endpoint for creating users:
+  - [x] Accept email, role, and user details
+  - [x] Use `auth.admin.createUser()` with service role:
+    ```typescript
+    // Example flow in Edge Function
+    const { data: newUser, error } = await supabase.auth.admin.createUser({
+      email: email,
+      email_confirm: true, // Auto-confirm their email
+      user_metadata: {
+        first_name,
+        last_name
       }
+    });
 
-      // 3. Create or get user record
-      let userId;
-      const { data: userRecord } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', data.email)
-        .single();
+    if (newUser) {
+      // Create users record
+      await supabase.from('users').insert({
+        id: newUser.id,
+        email: email,
+        first_name,
+        last_name
+      });
 
-      if (userRecord) {
-        userId = userRecord.id;
-      } else {
-        const { data: newUser } = await supabase
-          .from('users')
-          .insert({
-            email: data.email,
-            first_name: data.firstName,
-            last_name: data.lastName
-          })
-          .select()
-          .single();
-        userId = newUser.id;
-      }
-
-      // 4. Create accounts_users association
-      await supabase
-        .from('accounts_users')
-        .insert({
-          user_id: userId,
-          account_id: workspace.id,
-          role: data.role
-        });
-
-      // 5. Update UI state
-      toast.success("User added successfully");
-      setIsAddUserDialogOpen(false);
-    } catch (error) {
-      toast.error("Failed to add user");
-      console.error(error);
+      // Create accounts_users association
+      await supabase.from('accounts_users').insert({
+        user_id: newUser.id,
+        account_id,
+        role
+      });
     }
-  };
-  ```
+    ```
+  - [x] Send welcome email with temporary password
+  - [x] Add proper error handling
 
-### Add Error Handling
-- [ ] Add error states to form:
-  - [ ] Display specific error messages:
-    - [ ] "User already has access to this account"
-    - [ ] "Failed to create user record"
-    - [ ] "Failed to associate user with account"
-  - [ ] Show errors in UI using toast notifications
-  - [ ] Maintain form state on error
+### Error Handling
+- [x] Add error states to form:
+  - [x] "Failed to create user"
+  - [x] "Email already exists"
+  - [x] Show errors in UI using toast notifications
+  - [x] Maintain form state on error
 
 ## 3. User List Management
 ### Enhance Users State
-- [ ] Update users data structure to match database:
+- [x] Update users data structure to match database:
   ```typescript
   interface User {
     id: string;
@@ -126,11 +100,11 @@
     role: string | null;  // From accounts_users table
   }
   ```
-- [ ] Add loading state for users list
-- [ ] Implement real-time updates using Supabase subscriptions
+- [x] Add loading state for users list
+- [x] Implement real-time updates using Supabase subscriptions
 
 ### List Functionality
-- [ ] Replace mock data with real users query:
+- [x] Replace mock data with real users query:
   ```typescript
   const fetchUsers = async () => {
     if (!workspace) return;
@@ -158,36 +132,106 @@
     })) || []);
   };
   ```
-- [ ] Show user role from accounts_users table
-- [ ] Implement list refresh after successful invite
+- [x] Show user role from accounts_users table
+- [x] Implement list refresh after successful invite
 
 ## 4. Success Handling
 ### UI Updates
-- [ ] Clear form after successful invite
-- [ ] Close dialog after success
-- [ ] Show success toast: "User added successfully"
-- [ ] Refresh users list to show new user
+- [x] Clear form after successful invite
+- [x] Close dialog after success
+- [x] Show success toast: "User added successfully"
+- [x] Refresh users list to show new user
 
 ### State Management
-- [ ] Update local users state with new user
-- [ ] Handle Supabase real-time updates
-- [ ] Maintain consistent UI state
+- [x] Update local users state with new user
+- [x] Handle Supabase real-time updates
+- [x] Maintain consistent UI state
 
 ## 5. Testing
 ### Test Cases
-- [ ] Admin access:
-  - [ ] Settings page access control
-  - [ ] Add User button visibility
-  - [ ] Form submission permissions
+- [x] Admin access:
+  - [x] Settings page access control
+  - [x] Add User button visibility
+  - [x] Form submission permissions
 
-- [ ] Invite functionality:
-  - [ ] Form validation
-  - [ ] Duplicate user prevention
-  - [ ] Success/error notifications
-  - [ ] Dialog behavior
+- [x] Invite functionality:
+  - [x] Form validation
+  - [x] Duplicate user prevention
+  - [x] Success/error notifications
+  - [x] Dialog behavior
 
-- [ ] Users list:
-  - [ ] Loading states
-  - [ ] Refresh after invite
-  - [ ] Role display
-  - [ ] Real-time updates
+- [x] Users list:
+  - [x] Loading states
+  - [x] Refresh after invite
+  - [x] Role display
+  - [x] Real-time updates
+
+## 6. User Management Actions
+### Create Manage User Dialog
+- [ ] Create new ManageUserDialog component:
+  ```typescript
+  interface ManageUserDialogProps {
+    user: User;
+    isOpen: boolean;
+    onClose: () => void;
+    onUpdate: () => void;
+  }
+  ```
+- [ ] Add dialog UI elements:
+  - [ ] User details display
+  - [ ] Role update dropdown
+  - [ ] Delete user button
+  - [ ] Save/Cancel buttons
+
+### Add User Management Logic
+- [ ] Implement role update functionality:
+  ```typescript
+  const updateUserRole = async (userId: string, newRole: string) => {
+    const { error } = await supabase
+      .from('accounts_users')
+      .update({ role: newRole })
+      .eq('user_id', userId)
+      .eq('account_id', workspace.id);
+    
+    if (error) throw error;
+  };
+  ```
+- [ ] Add user deletion with cascade:
+  - [ ] Remove from accounts_users
+  - [ ] Handle associated data cleanup
+  - [ ] Show confirmation dialog
+
+### Update Settings Component
+- [ ] Add state for manage dialog:
+  ```typescript
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isManageDialogOpen, setIsManageDialogOpen] = useState(false);
+  ```
+- [ ] Connect Manage button to dialog:
+  ```typescript
+  const handleManageClick = (user: User) => {
+    setSelectedUser(user);
+    setIsManageDialogOpen(true);
+  };
+  ```
+- [ ] Add success/error notifications
+- [ ] Refresh user list after updates
+
+### Security & Validation
+- [ ] Add admin-only checks for management actions
+- [ ] Prevent self-role-change
+- [ ] Add loading states for actions
+- [ ] Validate role changes
+
+### Testing
+- [ ] Test role updates:
+  - [ ] Success case
+  - [ ] Error handling
+  - [ ] UI feedback
+- [ ] Test user deletion:
+  - [ ] Confirmation flow
+  - [ ] Cascade deletion
+  - [ ] Error cases
+- [ ] Test permissions:
+  - [ ] Admin access
+  - [ ] Self-modification prevention

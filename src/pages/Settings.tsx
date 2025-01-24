@@ -14,21 +14,99 @@ import { useWorkspace } from "@/hooks/use-workspace";
 
 interface UserFormData {
   email: string;
-  name: string;
-  role: string;
+  firstName: string;
+  lastName?: string;
+  role: 'admin' | 'agent';
+}
+
+interface User {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  role: string | null;  // From accounts_users table
 }
 
 export default function Settings() {
   const { workspace } = useWorkspace();
   const [aiEnabled, setAiEnabled] = useState(true);
   const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
-  const [users, setUsers] = useState([
-    { id: 1, name: "Admin User", email: "admin@example.com", role: "Admin" },
-    { id: 2, name: "Support Agent", email: "agent@example.com", role: "Agent" },
-  ]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserRole, setNewUserRole] = useState("agent");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  const fetchUsers = async () => {
+    if (!workspace) return;
+    
+    setIsLoadingUsers(true);
+    try {
+      const { data, error } = await supabase
+        .from('accounts_users')
+        .select(`
+          user_id,
+          role,
+          users:user_id (
+            id,
+            first_name,
+            last_name,
+            email
+          )
+        `)
+        .eq('account_id', workspace.id);
+
+      if (error) {
+        toast.error("Failed to fetch users");
+        console.error(error);
+        return;
+      }
+      
+      setUsers(data?.map(record => ({
+        id: record.users.id,
+        first_name: record.users.first_name,
+        last_name: record.users.last_name,
+        email: record.users.email,
+        role: record.role
+      })) || []);
+    } catch (error) {
+      toast.error("Failed to fetch users");
+      console.error(error);
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  };
+
+  useEffect(() => {
+    if (workspace) {
+      fetchUsers();
+
+      // Set up real-time subscription
+      const usersSubscription = supabase
+        .channel('accounts_users_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'accounts_users',
+            filter: `account_id=eq.${workspace.id}`
+          },
+          () => {
+            // Refresh the users list when changes occur
+            fetchUsers();
+          }
+        )
+        .subscribe();
+
+      // Cleanup subscription on unmount
+      return () => {
+        usersSubscription.unsubscribe();
+      };
+    }
+  }, [workspace]);
 
   useEffect(() => {
     const getUser = async () => {
@@ -40,17 +118,107 @@ export default function Settings() {
     getUser();
   }, []);
 
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && workspace) {
+        const { data } = await supabase
+          .from('accounts_users')
+          .select('role')
+          .eq('user_id', user.id)
+          .eq('account_id', workspace.id)
+          .single();
+        
+        setIsAdmin(data?.role === 'admin');
+      }
+    };
+    checkAdminStatus();
+  }, [workspace]);
+
   const form = useForm<UserFormData>({
     defaultValues: {
       email: "",
-      name: "",
-      role: "Agent",
+      firstName: "",
+      lastName: "",
+      role: "agent",
     },
   });
 
-  const onSubmit = (data: UserFormData) => {
-    toast.success("User invited successfully");
-    console.log("Invited user:", data);
+  const onSubmit = async (formData: UserFormData) => {
+    if (!isAdmin) {
+      toast.error("Only admins can invite users");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // 1. Verify admin status and workspace
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !workspace) {
+        toast.error("Missing user or workspace information");
+        return;
+      }
+
+      // 2. Call create-user Edge Function
+      const response = await supabase.functions.invoke('create-user', {
+        body: {
+          email: formData.email,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          role: formData.role,
+          account_id: workspace.id
+        }
+      });
+
+      if (response.error) {
+        // Try to parse the error response
+        let errorMessage = "Failed to create user";
+        try {
+          const errorContext = JSON.parse(response.error.message);
+          errorMessage = errorContext.error || errorContext.message || response.error.message;
+        } catch {
+          errorMessage = response.error.message || errorMessage;
+        }
+
+        if (errorMessage.includes("email_exists") || errorMessage.includes("already been registered")) {
+          toast.error("A user with this email already exists");
+        } else {
+          toast.error(errorMessage);
+        }
+        console.error('Edge Function Error:', response.error);
+        return;
+      }
+
+      // Success handling
+      toast.success("User added successfully");
+      
+      // Clear form and close dialog
+      form.reset();
+      setIsAddUserDialogOpen(false);
+      
+      // Refresh users list - this will trigger the real-time subscription
+      await fetchUsers();
+    } catch (error: any) {
+      // Handle any other errors
+      let errorMessage = "Failed to create user";
+      try {
+        if (error.message) {
+          const parsedError = JSON.parse(error.message);
+          errorMessage = parsedError.error || parsedError.message || error.message;
+        }
+      } catch {
+        errorMessage = error.message || errorMessage;
+      }
+      
+      if (errorMessage.includes("email_exists") || errorMessage.includes("already been registered")) {
+        toast.error("A user with this email already exists");
+      } else {
+        toast.error(errorMessage);
+      }
+      console.error('Error creating user:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleAiToggle = (checked: boolean) => {
@@ -128,9 +296,9 @@ export default function Settings() {
                 <Users className="h-5 w-5" />
                 <CardTitle>User Management</CardTitle>
               </div>
-              <Dialog>
+              <Dialog open={isAddUserDialogOpen} onOpenChange={setIsAddUserDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button>
+                  <Button disabled={!isAdmin}>
                     <UserPlus className="h-4 w-4 mr-2" />
                     Add User
                   </Button>
@@ -143,29 +311,72 @@ export default function Settings() {
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                       <FormField
                         control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="John Doe" {...field} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
                         name="email"
+                        rules={{
+                          required: "Email is required",
+                          pattern: {
+                            value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                            message: "Invalid email address"
+                          }
+                        }}
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Email</FormLabel>
                             <FormControl>
                               <Input type="email" placeholder="john@example.com" {...field} />
                             </FormControl>
+                            <FormDescription>The user's email address</FormDescription>
                           </FormItem>
                         )}
                       />
-                      <Button type="submit" className="w-full">Invite User</Button>
+                      <FormField
+                        control={form.control}
+                        name="firstName"
+                        rules={{ required: "First name is required" }}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>First Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="John" {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="lastName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Last Name (Optional)</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Doe" {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="role"
+                        rules={{ required: "Role is required" }}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Role</FormLabel>
+                            <FormControl>
+                              <select
+                                {...field}
+                                className="w-full p-2 border rounded-md"
+                              >
+                                <option value="agent">Agent</option>
+                                <option value="admin">Admin</option>
+                              </select>
+                            </FormControl>
+                            <FormDescription>User's role in the system</FormDescription>
+                          </FormItem>
+                        )}
+                      />
+                      <Button type="submit" className="w-full" disabled={isLoading}>
+                        {isLoading ? "Inviting..." : "Invite User"}
+                      </Button>
                     </form>
                   </Form>
                 </DialogContent>
@@ -175,23 +386,41 @@ export default function Settings() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {users.map((user) => (
-                <div
-                  key={user.id}
-                  className="flex items-center justify-between p-4 border rounded-lg"
-                >
-                  <div>
-                    <p className="font-medium">{user.name}</p>
-                    <p className="text-sm text-muted-foreground">{user.email}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">{user.role}</span>
-                    <Button variant="outline" size="sm">
-                      Manage
-                    </Button>
-                  </div>
+              {isLoadingUsers ? (
+                <div className="flex items-center justify-center p-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </div>
-              ))}
+              ) : users.length === 0 ? (
+                <div className="text-center p-4 text-muted-foreground">
+                  No users found
+                </div>
+              ) : (
+                users.map((user) => (
+                  <div
+                    key={user.id}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                  >
+                    <div>
+                      <p className="font-medium">
+                        {user.first_name} {user.last_name}
+                      </p>
+                      <p className="text-sm text-muted-foreground">{user.email}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm px-2 py-1 rounded-full ${
+                        user.role === 'admin' 
+                          ? 'bg-primary/10 text-primary' 
+                          : 'bg-muted text-muted-foreground'
+                      }`}>
+                        {user.role}
+                      </span>
+                      <Button variant="outline" size="sm">
+                        Manage
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
