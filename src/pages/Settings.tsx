@@ -4,13 +4,14 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { UserPlus, Users, Settings as SettingsIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface UserFormData {
   email: string;
@@ -38,6 +39,12 @@ export default function Settings() {
   const [newUserRole, setNewUserRole] = useState("agent");
   const [isLoading, setIsLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [isDeletingUser, setIsDeletingUser] = useState(false);
+  const [userToManage, setUserToManage] = useState<User | null>(null);
+  const [isManageDialogOpen, setIsManageDialogOpen] = useState(false);
+  const [isUpdatingRole, setIsUpdatingRole] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<'admin' | 'agent'>('agent');
 
   const fetchUsers = async () => {
     if (!workspace) return;
@@ -233,6 +240,71 @@ export default function Settings() {
     toast.success("Chatbot URL copied to clipboard");
   };
 
+  const handleDeleteUser = async () => {
+    if (!userToDelete || !workspace || !isAdmin) return;
+
+    setIsDeletingUser(true);
+    try {
+      // First remove from accounts_users to revoke access
+      const { error: removeAccessError } = await supabase
+        .from('accounts_users')
+        .delete()
+        .eq('user_id', userToDelete.id)
+        .eq('account_id', workspace.id);
+
+      if (removeAccessError) throw removeAccessError;
+
+      // Then remove from users table if this was their only workspace
+      const { data: otherWorkspaces } = await supabase
+        .from('accounts_users')
+        .select('account_id')
+        .eq('user_id', userToDelete.id);
+
+      if (!otherWorkspaces?.length) {
+        const { error: removeUserError } = await supabase
+          .from('users')
+          .delete()
+          .eq('id', userToDelete.id);
+
+        if (removeUserError) throw removeUserError;
+      }
+
+      toast.success("User removed successfully");
+      setUserToDelete(null);
+      await fetchUsers(); // Refresh the users list
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast.error("Failed to remove user");
+    } finally {
+      setIsDeletingUser(false);
+    }
+  };
+
+  const handleUpdateRole = async () => {
+    if (!userToManage || !workspace || !isAdmin) return;
+
+    setIsUpdatingRole(true);
+    try {
+      const { error } = await supabase
+        .from('accounts_users')
+        .update({ role: selectedRole })
+        .eq('user_id', userToManage.id)
+        .eq('account_id', workspace.id);
+
+      if (error) throw error;
+
+      toast.success("User role updated successfully");
+      setIsManageDialogOpen(false);
+      setUserToManage(null);
+      await fetchUsers(); // Refresh the users list
+    } catch (error) {
+      console.error('Error updating user role:', error);
+      toast.error("Failed to update user role");
+    } finally {
+      setIsUpdatingRole(false);
+    }
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -395,36 +467,129 @@ export default function Settings() {
                   No users found
                 </div>
               ) : (
-                users.map((user) => (
-                  <div
-                    key={user.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div>
-                      <p className="font-medium">
-                        {user.first_name} {user.last_name}
-                      </p>
-                      <p className="text-sm text-muted-foreground">{user.email}</p>
+                <div className="space-y-4">
+                  {users.map((user) => (
+                    <div
+                      key={user.id}
+                      className="flex items-center justify-between p-4 rounded-lg border"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="space-y-1">
+                          <p className="font-medium">
+                            {user.first_name} {user.last_name}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {user.email}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm text-muted-foreground">
+                          {user.role}
+                        </div>
+                        {isAdmin && user.email !== currentUserEmail && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setUserToManage(user);
+                              setSelectedRole(user.role as 'admin' | 'agent');
+                              setIsManageDialogOpen(true);
+                            }}
+                          >
+                            Manage
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-sm px-2 py-1 rounded-full ${
-                        user.role === 'admin' 
-                          ? 'bg-primary/10 text-primary' 
-                          : 'bg-muted text-muted-foreground'
-                      }`}>
-                        {user.role}
-                      </span>
-                      <Button variant="outline" size="sm">
-                        Manage
-                      </Button>
-                    </div>
-                  </div>
-                ))
+                  ))}
+                </div>
               )}
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Role Management Dialog */}
+      <Dialog open={isManageDialogOpen} onOpenChange={(open) => !open && setIsManageDialogOpen(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Manage User</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>User</Label>
+              <p className="text-sm">{userToManage?.first_name} {userToManage?.last_name}</p>
+              <p className="text-sm text-muted-foreground">{userToManage?.email}</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Role</Label>
+              <select
+                value={selectedRole}
+                onChange={(e) => setSelectedRole(e.target.value as 'admin' | 'agent')}
+                className="w-full p-2 border rounded-md"
+              >
+                <option value="agent">Agent</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+          </div>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-0">
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsManageDialogOpen(false);
+                  setUserToManage(null);
+                }}
+                className="flex-1 sm:flex-none"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  setUserToDelete(userToManage);
+                  setIsManageDialogOpen(false);
+                }}
+                className="flex-1 sm:flex-none"
+              >
+                Remove User
+              </Button>
+            </div>
+            <Button
+              onClick={handleUpdateRole}
+              disabled={isUpdatingRole || userToManage?.role === selectedRole}
+              className="flex-1 sm:flex-none"
+            >
+              {isUpdatingRole ? "Updating..." : "Update Role"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove {userToDelete?.first_name} {userToDelete?.last_name} ({userToDelete?.email}) from this workspace?
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteUser}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeletingUser}
+            >
+              {isDeletingUser ? "Removing..." : "Remove User"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

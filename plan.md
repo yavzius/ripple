@@ -168,7 +168,7 @@
 
 ## 6. User Management Actions
 ### Create Manage User Dialog
-- [ ] Create new ManageUserDialog component:
+- [x] Create new ManageUserDialog component:
   ```typescript
   interface ManageUserDialogProps {
     user: User;
@@ -177,14 +177,14 @@
     onUpdate: () => void;
   }
   ```
-- [ ] Add dialog UI elements:
-  - [ ] User details display
-  - [ ] Role update dropdown
-  - [ ] Delete user button
-  - [ ] Save/Cancel buttons
+- [x] Add dialog UI elements:
+  - [x] User details display
+  - [x] Role update dropdown
+  - [x] Delete user button
+  - [x] Save/Cancel buttons
 
 ### Add User Management Logic
-- [ ] Implement role update functionality:
+- [x] Implement role update functionality:
   ```typescript
   const updateUserRole = async (userId: string, newRole: string) => {
     const { error } = await supabase
@@ -196,42 +196,42 @@
     if (error) throw error;
   };
   ```
-- [ ] Add user deletion with cascade:
-  - [ ] Remove from accounts_users
-  - [ ] Handle associated data cleanup
-  - [ ] Show confirmation dialog
+- [x] Add user deletion with cascade:
+  - [x] Remove from accounts_users
+  - [x] Handle associated data cleanup
+  - [x] Show confirmation dialog
 
 ### Update Settings Component
-- [ ] Add state for manage dialog:
+- [x] Add state for manage dialog:
   ```typescript
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isManageDialogOpen, setIsManageDialogOpen] = useState(false);
   ```
-- [ ] Connect Manage button to dialog:
+- [x] Connect Manage button to dialog:
   ```typescript
   const handleManageClick = (user: User) => {
     setSelectedUser(user);
     setIsManageDialogOpen(true);
   };
   ```
-- [ ] Add success/error notifications
-- [ ] Refresh user list after updates
+- [x] Add success/error notifications
+- [x] Refresh user list after updates
 
 ### Security & Validation
-- [ ] Add admin-only checks for management actions
-- [ ] Prevent self-role-change
-- [ ] Add loading states for actions
-- [ ] Validate role changes
+- [x] Add admin-only checks for management actions
+- [x] Prevent self-role-change
+- [x] Add loading states for actions
+- [x] Validate role changes
 
 ### Testing
-- [ ] Test role updates:
-  - [ ] Success case
-  - [ ] Error handling
-  - [ ] UI feedback
-- [ ] Test user deletion:
-  - [ ] Confirmation flow
-  - [ ] Cascade deletion
-  - [ ] Error cases
-- [ ] Test permissions:
-  - [ ] Admin access
-  - [ ] Self-modification prevention
+- [x] Test role updates:
+  - [x] Success case
+  - [x] Error handling
+  - [x] UI feedback
+- [x] Test user deletion:
+  - [x] Confirmation flow
+  - [x] Cascade deletion
+  - [x] Error cases
+- [x] Test permissions:
+  - [x] Admin access
+  - [x] Self-modification prevention
