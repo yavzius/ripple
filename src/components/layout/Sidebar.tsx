@@ -81,7 +81,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: SidebarProps) => {
     },
     {
       title: "Knowledge Base",
-      href: "/knowledge",
+      href: "/knowledge-base",
       icon: BookOpen,
     },
     {

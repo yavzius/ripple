@@ -151,7 +151,7 @@ const KnowledgeBase = () => {
                   <TableRow key={doc.id}>
                     <TableCell>
                       <Link
-                        to={`/knowledge/${doc.id}`}
+                        to={`/knowledge-base/${doc.id}`}
                         className="text-primary hover:underline"
                       >
                         {doc.title}
