@@ -85,10 +85,10 @@ function App() {
           <Route path="/customer" element={<CustomerPortal />} />
           <Route path="/chat/:workspaceId" element={<ChatbotPortal />} />
           <Route path="/auth" element={
-            isAuthenticated ? <Navigate to="/dashboard" replace /> : <Auth />
+            isAuthenticated ? <Navigate to="/inbox" replace /> : <Auth />
           } />
           <Route path="/sign-up" element={
-            isAuthenticated ? <Navigate to="/dashboard" replace /> : <SignUp />
+            isAuthenticated ? <Navigate to="/inbox" replace /> : <SignUp />
           } />
           {isAuthenticated ? (
             <Route element={<WorkspaceLayout />}>
