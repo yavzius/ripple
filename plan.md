@@ -1,237 +1,89 @@
-# Admin Invite System Implementation Plan
+# Workspace Selection Integration Plan
 
-## 1. Enhance Existing Settings UI
-### Update User Management Section
-- [x] Modify existing Dialog form in Settings.tsx:
-  - [x] Required fields:
-    - [x] Email (required)
-    - [x] First Name (required)
-    - [x] Last Name (optional)
-    - [x] Role (required)
-  - [x] Add form validation using react-hook-form:
-    - [x] Email format validation
-    - [x] Required field checks
-  - [x] Update loading states during submission
+## Database Changes
+1. Add to `users` table:
+   - `current_account_id`: UUID (references accounts.id) - for storing the user's currently selected workspace
 
-### Admin Access Control
-- [x] Add role verification to Settings page:
-  ```typescript
-  const { workspace } = useWorkspace();
-  const [isAdmin, setIsAdmin] = useState(false);
-  
-  // Check if user has admin role in accounts_users table
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user && workspace) {
-        const { data } = await supabase
-          .from('accounts_users')
-          .select('role')
-          .eq('user_id', user.id)
-          .eq('account_id', workspace.id)
-          .single();
-        
-        setIsAdmin(data?.role === 'admin');
-      }
-    };
-    checkAdminStatus();
-  }, [workspace]);
+Note: We'll use the existing tables:
+- `accounts` table (serves as workspaces)
+- `accounts_users` junction table (serves as workspace memberships)
+
+## Frontend Implementation
+
+### 1. State Management
+- Enhance existing `useWorkspace` hook to:
+  - Add `switchWorkspace(accountId: string)` function
+  - Add `listWorkspaces()` function to fetch all available workspaces
+  - Cache available workspaces list
+  - Handle workspace switching and state updates
+
+### 2. UI Components
+- Add workspace selector dropdown in the Header component:
+  - Current workspace name/icon
+  - List of available workspaces
+  - Quick workspace switching
+  - Create new workspace option
+- Add WorkspaceSettings page:
+  - Workspace management
+  - Member management
+  - Workspace settings
+
+### 3. Data Scoping
+- Update existing queries to use the selected workspace:
+  - Conversations
+  - Customers
+  - Channels
+  - Tickets
+  - Documents
+- Add workspace context to all API calls
+
+## Backend Implementation
+
+### 1. Supabase Functions
+- Create new endpoints:
+  - `switch-workspace`: Update user's current workspace
+  - `list-workspaces`: Get all workspaces user has access to
+  - `create-workspace`: Create new workspace
+  - `update-workspace`: Update workspace settings
+  - `invite-member`: Add new member to workspace
+
+### 2. Security Rules
+- Update existing RLS policies to use current_account_id:
+  ```sql
+  CREATE POLICY "Users can only access their current workspace data"
+  ON table_name
+  FOR ALL USING (
+    auth.uid() IN (
+      SELECT user_id FROM accounts_users 
+      WHERE account_id = current_account_id
+    )
+  );
   ```
-- [x] Hide "Add User" button for non-admins
 
-## 2. Backend Integration
-### Create Admin Auth Client
-- [x] Create a secure Edge Function for admin auth operations:
-  - [x] Set up service role authentication
-  - [x] Disable token refresh and session persistence
-  - [x] Never expose service role key in the browser
+### 3. Data Migration
+- No data migration needed since the structure already exists
+- Add default current_account_id for existing users
 
-### Update User Creation Flow
-- [x] Create Edge Function endpoint for creating users:
-  - [x] Accept email, role, and user details
-  - [x] Use `auth.admin.createUser()` with service role:
-    ```typescript
-    // Example flow in Edge Function
-    const { data: newUser, error } = await supabase.auth.admin.createUser({
-      email: email,
-      email_confirm: true, // Auto-confirm their email
-      user_metadata: {
-        first_name,
-        last_name
-      }
-    });
+## Testing Plan
+1. Unit tests:
+   - Workspace switching
+   - Workspace list fetching
+   - Permission checks
+2. Integration tests:
+   - Data isolation between workspaces
+   - Workspace switching flow
+   - Member management
 
-    if (newUser) {
-      // Create users record
-      await supabase.from('users').insert({
-        id: newUser.id,
-        email: email,
-        first_name,
-        last_name
-      });
+## Deployment Steps
+1. Add current_account_id column
+2. Update RLS policies
+3. Deploy new Supabase functions
+4. Deploy frontend changes with workspace selector
+5. Monitor workspace switching and data access patterns
 
-      // Create accounts_users association
-      await supabase.from('accounts_users').insert({
-        user_id: newUser.id,
-        account_id,
-        role
-      });
-    }
-    ```
-  - [x] Send welcome email with temporary password
-  - [x] Add proper error handling
-
-### Error Handling
-- [x] Add error states to form:
-  - [x] "Failed to create user"
-  - [x] "Email already exists"
-  - [x] Show errors in UI using toast notifications
-  - [x] Maintain form state on error
-
-## 3. User List Management
-### Enhance Users State
-- [x] Update users data structure to match database:
-  ```typescript
-  interface User {
-    id: string;
-    first_name: string | null;
-    last_name: string | null;
-    email: string | null;
-    role: string | null;  // From accounts_users table
-  }
-  ```
-- [x] Add loading state for users list
-- [x] Implement real-time updates using Supabase subscriptions
-
-### List Functionality
-- [x] Replace mock data with real users query:
-  ```typescript
-  const fetchUsers = async () => {
-    if (!workspace) return;
-    
-    const { data } = await supabase
-      .from('accounts_users')
-      .select(`
-        user_id,
-        role,
-        users:user_id (
-          id,
-          first_name,
-          last_name,
-          email
-        )
-      `)
-      .eq('account_id', workspace.id);
-    
-    setUsers(data?.map(record => ({
-      id: record.users.id,
-      first_name: record.users.first_name,
-      last_name: record.users.last_name,
-      email: record.users.email,
-      role: record.role
-    })) || []);
-  };
-  ```
-- [x] Show user role from accounts_users table
-- [x] Implement list refresh after successful invite
-
-## 4. Success Handling
-### UI Updates
-- [x] Clear form after successful invite
-- [x] Close dialog after success
-- [x] Show success toast: "User added successfully"
-- [x] Refresh users list to show new user
-
-### State Management
-- [x] Update local users state with new user
-- [x] Handle Supabase real-time updates
-- [x] Maintain consistent UI state
-
-## 5. Testing
-### Test Cases
-- [x] Admin access:
-  - [x] Settings page access control
-  - [x] Add User button visibility
-  - [x] Form submission permissions
-
-- [x] Invite functionality:
-  - [x] Form validation
-  - [x] Duplicate user prevention
-  - [x] Success/error notifications
-  - [x] Dialog behavior
-
-- [x] Users list:
-  - [x] Loading states
-  - [x] Refresh after invite
-  - [x] Role display
-  - [x] Real-time updates
-
-## 6. User Management Actions
-### Create Manage User Dialog
-- [x] Create new ManageUserDialog component:
-  ```typescript
-  interface ManageUserDialogProps {
-    user: User;
-    isOpen: boolean;
-    onClose: () => void;
-    onUpdate: () => void;
-  }
-  ```
-- [x] Add dialog UI elements:
-  - [x] User details display
-  - [x] Role update dropdown
-  - [x] Delete user button
-  - [x] Save/Cancel buttons
-
-### Add User Management Logic
-- [x] Implement role update functionality:
-  ```typescript
-  const updateUserRole = async (userId: string, newRole: string) => {
-    const { error } = await supabase
-      .from('accounts_users')
-      .update({ role: newRole })
-      .eq('user_id', userId)
-      .eq('account_id', workspace.id);
-    
-    if (error) throw error;
-  };
-  ```
-- [x] Add user deletion with cascade:
-  - [x] Remove from accounts_users
-  - [x] Handle associated data cleanup
-  - [x] Show confirmation dialog
-
-### Update Settings Component
-- [x] Add state for manage dialog:
-  ```typescript
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [isManageDialogOpen, setIsManageDialogOpen] = useState(false);
-  ```
-- [x] Connect Manage button to dialog:
-  ```typescript
-  const handleManageClick = (user: User) => {
-    setSelectedUser(user);
-    setIsManageDialogOpen(true);
-  };
-  ```
-- [x] Add success/error notifications
-- [x] Refresh user list after updates
-
-### Security & Validation
-- [x] Add admin-only checks for management actions
-- [x] Prevent self-role-change
-- [x] Add loading states for actions
-- [x] Validate role changes
-
-### Testing
-- [x] Test role updates:
-  - [x] Success case
-  - [x] Error handling
-  - [x] UI feedback
-- [x] Test user deletion:
-  - [x] Confirmation flow
-  - [x] Cascade deletion
-  - [x] Error cases
-- [x] Test permissions:
-  - [x] Admin access
-  - [x] Self-modification prevention
+## Future Enhancements
+- Workspace-specific settings
+- Custom branding per workspace
+- Usage analytics per workspace
+- Workspace-level API keys
+- Cross-workspace data sharing options

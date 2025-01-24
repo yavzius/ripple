@@ -6,6 +6,7 @@ import { getTickets } from "@/lib/actions";
 import { useEffect, useState } from "react";
 import { DataTable } from "@/components/ui/data-table";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useWorkspace } from "@/hooks/use-workspace";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -197,6 +198,7 @@ const columns: ColumnDef<TicketResponse>[] = [
 
 const TicketsPage = () => {
   const navigate = useNavigate();
+  const { workspace } = useWorkspace();
   const [tickets, setTickets] = useState<TicketResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -210,12 +212,18 @@ const TicketsPage = () => {
         } else {
           setTickets([]);
         }
+      } catch (error) {
+        console.error('Failed to fetch tickets:', error);
+        setTickets([]);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchTickets();
-  }, []);
+
+    if (workspace?.id) {
+      fetchTickets();
+    }
+  }, [workspace?.id]); // Re-fetch when workspace changes
 
   return (
     <div className="flex flex-col gap-6">

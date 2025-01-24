@@ -478,6 +478,7 @@ export type Database = {
       users: {
         Row: {
           created_at: string | null
+          current_account_id: string | null
           email: string | null
           first_name: string | null
           id: string
@@ -485,6 +486,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          current_account_id?: string | null
           email?: string | null
           first_name?: string | null
           id: string
@@ -492,12 +494,21 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          current_account_id?: string | null
           email?: string | null
           first_name?: string | null
           id?: string
           last_name?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "users_current_account_id_fkey"
+            columns: ["current_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

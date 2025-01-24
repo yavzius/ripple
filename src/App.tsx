@@ -27,6 +27,7 @@ import Companies from "./pages/Companies";
 import CompanyDetail from "./pages/CompanyDetail";
 import NewContact from "./pages/NewContact";
 import Inbox from "./pages/Inbox";
+import WorkspaceSettings from "./pages/WorkspaceSettings";
 
 const InitialLoadingState = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -102,6 +103,7 @@ function App() {
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/updates" element={<Updates />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/settings/workspaces" element={<WorkspaceSettings />} />
               <Route path="/companies" element={<Companies />} />
               <Route path="/companies/new" element={<NewCustomerCompany />} />
               <Route path="/companies/:id" element={<CompanyDetail />} />

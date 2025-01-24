@@ -57,6 +57,21 @@ const handleError = (error: Error | null) => {
 
 export async function getTickets() {
   try {
+    // Get current session
+    const { data: { session }, error: authError } = await supabase.auth.getSession();
+    if (authError) throw authError;
+    if (!session?.user?.id) throw new Error('Not authenticated');
+
+    // Get user's current workspace
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('current_account_id')
+      .eq('id', session.user.id)
+      .single();
+
+    if (userError) throw userError;
+    if (!user?.current_account_id) throw new Error('No workspace selected');
+
     const { data: ticketsData, error: ticketsError } = await supabase
       .from('tickets')
       .select(`
@@ -83,6 +98,7 @@ export async function getTickets() {
           )
         )
       `)
+      .eq('account_id', user.current_account_id)
       .order('created_at', { ascending: false });
 
     if (ticketsError) throw ticketsError;
