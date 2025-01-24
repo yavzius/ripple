@@ -33,19 +33,16 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: SidebarProps) => {
   useEffect(() => {
     const savedPinState = localStorage.getItem('sidebarPinned');
     const isPinned = savedPinState ? JSON.parse(savedPinState) : false;
-    const savedCollapsedState = localStorage.getItem('sidebarCollapsed');
-    const shouldBeCollapsed = savedCollapsedState ? JSON.parse(savedCollapsedState) : !isPinned;
-    setIsCollapsed(shouldBeCollapsed);
+    setIsCollapsed(!isPinned);
   }, []);
 
   // Save states when they change
   useEffect(() => {
     localStorage.setItem('sidebarPinned', JSON.stringify(isPinned));
-    localStorage.setItem('sidebarCollapsed', JSON.stringify(isCollapsed));
-  }, [isPinned, isCollapsed]);
+  }, [isPinned]);
 
   const handleMouseLeave = () => {
-    if (!isPinned && !isUserMenuOpen) {
+    if (!isPinned) {
       setIsCollapsed(true);
     }
   };
@@ -59,9 +56,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: SidebarProps) => {
   const togglePin = () => {
     const newPinState = !isPinned;
     setIsPinned(newPinState);
-    if (!newPinState) {
-      setIsCollapsed(true);
-    }
+    setIsCollapsed(!newPinState);
   };
 
   const isActive = (path: string) => {
@@ -115,7 +110,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: SidebarProps) => {
     <aside
       className={cn(
         "fixed left-0 top-0 z-40 h-screen border-r bg-primary text-primary-foreground transition-all duration-200",
-        isCollapsed ? "w-16 hover:w-64" : "w-64"
+        isCollapsed ? "w-16" : "w-64"
       )}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -159,11 +154,13 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: SidebarProps) => {
                 key={item.title}
                 to={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-[background-color,color] hover:bg-accent hover:text-secondary group",
-                  isActive(item.href) && "bg-accent text-secondary font-semibold"
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-[background-color,color] hover:bg-accent hover:text-accent-foreground group",
+                  isActive(item.href) ? "bg-accent text-accent-foreground font-semibold" : "text-primary-foreground"
                 )}
               >
-                <item.icon className={cn("h-4 w-4 shrink-0 transition-colors", isActive(item.href) ? "text-primary-foreground" : "text-muted")} />
+                <item.icon className={cn("h-4 w-4 shrink-0 transition-colors", 
+                  isActive(item.href) ? "text-accent-foreground" : "text-primary-foreground/70"
+                )} />
                 <span
                   className={cn(
                     "transition-all duration-200 whitespace-nowrap",

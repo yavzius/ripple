@@ -28,7 +28,6 @@ import Companies from "./pages/Companies";
 import CompanyDetail from "./pages/CompanyDetail";
 import NewContact from "./pages/NewContact";
 import Inbox from "./pages/Inbox";
-import WorkspaceSettings from "./pages/WorkspaceSettings";
 import Landing from "./pages/Landing";
 
 const InitialLoadingState = () => (
@@ -107,7 +106,6 @@ function App() {
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/updates" element={<Updates />} />
               <Route path="/settings" element={<Settings />} />
-              <Route path="/settings/workspaces" element={<WorkspaceSettings />} />
               <Route path="/companies" element={<Companies />} />
               <Route path="/companies/new" element={<NewCustomerCompany />} />
               <Route path="/companies/:id" element={<CompanyDetail />} />

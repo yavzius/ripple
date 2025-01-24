@@ -7,11 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
-import { UserPlus, Users, Settings as SettingsIcon } from "lucide-react";
+import { UserPlus, Users, Settings as SettingsIcon, Database } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useAuth } from "@/hooks/use-auth";
 
 interface UserFormData {
   email: string;
@@ -30,6 +31,7 @@ interface User {
 
 export default function Settings() {
   const { workspace } = useWorkspace();
+  const { user } = useAuth();
   const [aiEnabled, setAiEnabled] = useState(true);
   const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
   const [users, setUsers] = useState<User[]>([]);
@@ -45,6 +47,7 @@ export default function Settings() {
   const [isManageDialogOpen, setIsManageDialogOpen] = useState(false);
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
   const [selectedRole, setSelectedRole] = useState<'admin' | 'agent'>('agent');
+  const [loading, setLoading] = useState(false);
 
   const fetchUsers = async () => {
     if (!workspace) return;
@@ -305,6 +308,40 @@ export default function Settings() {
     }
   };
 
+  const importDemoData = async () => {
+    if (!workspace || !isAdmin || !user) return;
+
+    setLoading(true);
+    try {
+      const response = await supabase.functions.invoke('generate-demo-content', {
+        body: { 
+          accountId: workspace.id,
+          userId: user.id
+        }
+      });
+
+      if (response.error) {
+        let errorMessage = "Failed to import demo data";
+        try {
+          const errorContext = JSON.parse(response.error.message);
+          errorMessage = errorContext.error || errorContext.message || response.error.message;
+        } catch {
+          errorMessage = response.error.message || errorMessage;
+        }
+        
+        toast.error(errorMessage);
+        console.error('Error importing demo data:', response.error);
+      } else {
+        toast.success("Demo data imported successfully");
+      }
+    } catch (error) {
+      console.error('Error importing demo data:', error);
+      toast.error("Failed to import demo data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -319,22 +356,27 @@ export default function Settings() {
       </div>
 
       <div className="grid gap-6">
+        {/* Demo Data Card */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Chatbot Integration</CardTitle>
-            </div>
-            <CardDescription>Get your workspace's chatbot URL to embed in your website</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-4">
-              <code className="flex-1 p-2 bg-muted rounded">
-                {workspace ? `${window.location.origin}/chat/${workspace.id}` : 'Loading...'}
-              </code>
-              <Button onClick={handleCopyChatbotUrl} disabled={!workspace}>
-                Copy URL
+              <div className="flex items-center gap-2">
+                <Database className="h-5 w-5" />
+                <CardTitle>Demo Data</CardTitle>
+              </div>
+              <Button
+                onClick={importDemoData}
+                disabled={loading || !isAdmin}
+              >
+                {loading ? 'Importing...' : 'Import Demo Data'}
               </Button>
             </div>
+            <CardDescription>Import demo content for testing and exploration</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              This will create sample customers, conversations, and tickets with beauty industry-specific content.
+            </p>
           </CardContent>
         </Card>
 

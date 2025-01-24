@@ -110,7 +110,7 @@ export default function CompanyDetail() {
           </Link>
           <ChevronRight className="h-4 w-4 text-muted-foreground" />
           <span className="text-muted-foreground">
-            {company.customers?.length || 0} {company.customers?.length === 1 ? 'customer' : 'customers'}
+            {company.customers?.length || 0} {company.customers?.length === 1 ? 'contact' : 'contacts'}
           </span>
         </div>
         <div className="flex items-center justify-between">
@@ -122,7 +122,7 @@ export default function CompanyDetail() {
           </div>
           <Button onClick={() => navigate(`/companies/${id}/customers/new`)}>
             <Plus className="h-4 w-4 mr-2" />
-            Add Customer
+            Add Contact
           </Button>
         </div>
       </div>
@@ -155,7 +155,7 @@ export default function CompanyDetail() {
           <CardContent className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <div className="text-2xl font-bold">{company.customers?.length || 0}</div>
-              <div className="text-sm text-muted-foreground">Total Customers</div>
+              <div className="text-sm text-muted-foreground">Total Contacts</div>
             </div>
             <div className="space-y-1">
               <div className="text-2xl font-bold">{totalConversations}</div>
@@ -171,8 +171,8 @@ export default function CompanyDetail() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Customers</CardTitle>
-          <CardDescription>Manage company customers and their information</CardDescription>
+          <CardTitle>Contacts</CardTitle>
+          <CardDescription>Manage company contacts and their information</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -218,7 +218,7 @@ export default function CompanyDetail() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => navigate(`/conversations/${customer.conversations?.[0]?.id || 'new'}?customer=${customer.id}`)}
+                      onClick={() => navigate(`/inbox/${customer.conversations?.[0]?.id || 'new'}?customer=${customer.id}`)}
                     >
                       <MessageCircle className="h-4 w-4" />
                     </Button>
@@ -255,7 +255,7 @@ export default function CompanyDetail() {
               )
               .sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime())
               .map(conversation => (
-                <TableRow key={conversation.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/conversations/${conversation.id}`)}>
+                <TableRow key={conversation.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/inbox/${conversation.id}`)}>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Avatar className="h-8 w-8">
