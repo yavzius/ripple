@@ -23,7 +23,7 @@ const Auth = () => {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" && session) {
-        navigate("/dashboard");
+        navigate("/inbox");
       }
       if (event === "USER_UPDATED") {
         const { error } = await supabase.auth.getSession();

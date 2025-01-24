@@ -119,8 +119,8 @@ export const SignUpForm = () => {
         throw signInError;
       }
 
-      // Redirect to the dashboard
-      navigate('/dashboard');
+      // Redirect to inbox
+      navigate('/inbox');
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
