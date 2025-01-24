@@ -14,6 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Dispatch, SetStateAction, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { UserMenu } from "./UserMenu";
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -26,6 +27,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: SidebarProps) => {
     const savedPinState = localStorage.getItem('sidebarPinned');
     return savedPinState ? JSON.parse(savedPinState) : false;
   });
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   // Initialize collapsed state based on pin state
   useEffect(() => {
@@ -43,7 +45,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: SidebarProps) => {
   }, [isPinned, isCollapsed]);
 
   const handleMouseLeave = () => {
-    if (!isPinned) {
+    if (!isPinned && !isUserMenuOpen) {
       setIsCollapsed(true);
     }
   };
@@ -175,6 +177,11 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: SidebarProps) => {
           </div>
         </div>
       </div>
+      <UserMenu 
+        isCollapsed={isCollapsed} 
+        isPinned={isPinned} 
+        onOpenChange={setIsUserMenuOpen}
+      />
     </aside>
   );
 };

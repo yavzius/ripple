@@ -1,144 +1,87 @@
-# Sign-up Flow Implementation Checklist
+## User Menu Implementation Checklist
 
-## 🎯 Goal
-Create a single-form sign-up experience that collects user and account information in one step.
-
-## 📋 Implementation Checklist
-
-### 1️⃣ Setup Project Structure
-- [x] Create new component file `SignUpForm.tsx` in `src/components/auth/`
-- [x] Add form component to `Auth.tsx` page
-- [x] Create new edge function file `create-account-and-user.ts` in `supabase/functions/`
-
-### 2️⃣ Create Form Component (SignUpForm.tsx)
-- [x] Add form container with proper styling
-- [x] Add form fields:
-  - [x] Email input with type="email"
-  - [x] Password input with type="password"
-  - [x] First Name input
-  - [x] Last Name input
-  - [x] Company Name input
-- [x] Add submit button
-- [x] Add loading spinner component
-- [x] Add error message display area
-
-### 3️⃣ Implement Form Validation
-- [x] Add email format validation
+### 1. Initial Setup ✅
+- [x] Create new file `src/components/layout/UserMenu.tsx`
+- [x] Set up component with existing design system patterns
+- [x] Import necessary dependencies from existing system:
   ```typescript
-  // Example validation
-  const isValidEmail = (email: string) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  }
+  import { cn } from "@/lib/utils";
+  import { Button } from "@/components/ui/button";
   ```
-- [x] Add password validation (minimum 6 characters only)
+
+### 2. User Information Display
+- [ ] Create user avatar section matching site's primary/accent theme
+- [ ] Use existing color scheme (primary/primary-foreground)
+- [ ] Add transition effects matching sidebar's style:
   ```typescript
-  const isValidPassword = (password: string) => {
-    return password.length >= 6;
-  }
+  className={cn(
+    "transition-all duration-200",
+    // Additional classes
+  )}
   ```
-- [x] Add required field validation for all fields
-- [x] Add company name validation:
-  ```typescript
-  const isValidCompanyName = (name: string) => {
-    return name.length >= 2 && name.length <= 20;
-  }
-  ```
-- [x] Add slug generation from company name:
-  ```typescript
-  const generateSlug = (name: string) => {
-    return name.toLowerCase()
-             .replace(/[^\w\s-]/g, '')
-             .replace(/\s+/g, '-');
-  }
-  ```
-- [x] Show validation errors under each field
-- [x] Disable submit button when form is invalid
 
-### 4️⃣ Create Edge Function
-- [x] Setup basic edge function structure
-- [x] Add input validation
-- [x] Implement database operations in this order:
-  1. [x] Create auth user
-  2. [x] Create users record
-  3. [x] Create accounts record
-  4. [x] Create accounts_users record
-  5. [x] Update user's current_account_id
-- [x] Add error handling for each step
-- [x] Add transaction wrapper
-- [x] Test function locally
+### 3. Integration with Sidebar ✅
+- [x] Add UserMenu to bottom of Sidebar component
+- [x] Implement collapse/expand behavior matching sidebar
+- [x] Use existing hover and animation patterns
+- [x] Maintain consistent spacing with `px-3 py-2` pattern
 
-### 5️⃣ Connect Frontend to Edge Function
-- [x] Add loading state management
-- [x] Implement form submission handler
-- [x] Add error handling for API responses
-- [x] Add success handling and redirect
+### 4. Dropdown Menu Implementation ✅
+- [x] Use site's existing Button component for trigger
+- [x] Create dropdown with matching rounded-lg styling
+- [x] Implement hover states using `hover:bg-accent hover:text-secondary`
+- [x] Add transition effects matching sidebar items
 
-### 6️⃣ Add Loading States
-- [x] Add loading spinner during submission
-- [x] Disable form while submitting
-- [x] Show appropriate loading messages
+### 5. Menu Items
+- [ ] Profile/Account Section
+  - [ ] Use consistent icon sizing (h-4 w-4)
+  - [ ] Match text styling (text-sm)
+  - [ ] Use existing hover patterns
+- [ ] Workspace Selection
+  - [ ] Match existing navigation item patterns
+  - [ ] Use consistent padding and spacing
+- [ ] Settings Link
+  - [ ] Reuse existing Settings navigation pattern
+- [ ] Logout Option
+  - [ ] Match button styling with site theme
 
-### 7️⃣ Error Handling
-- [x] Display API errors clearly
-- [x] Add retry mechanism for failed submissions
-- [x] Handle network errors
-- [x] Show user-friendly error messages
+### 6. State Management ✅
+- [x] Handle collapse state in sync with sidebar
+- [x] Implement localStorage persistence if needed
+- [x] Add hover behaviors matching sidebar
+- [x] Handle mobile responsiveness
 
-### 8️⃣ Testing
-- [ ] Test form validation
-- [ ] Test successful submission
-- [ ] Test error scenarios
-- [ ] Test loading states
-- [ ] Test with different input combinations
+### 7. Styling Integration ✅
+- [x] Use existing color tokens:
+  - Primary: bg-primary
+  - Text: text-primary-foreground
+  - Accent: bg-accent
+  - Secondary: text-secondary
+- [x] Match transition durations: duration-200
+- [x] Use existing border radius: rounded-lg
+- [x] Maintain consistent spacing patterns
 
-### 9️⃣ Final Polish
-- [ ] Add success message
-- [ ] Add redirect to dashboard after successful signup
-- [ ] Ensure all error messages are user-friendly
-- [ ] Test on different browsers
-- [ ] Review and improve UX
+### 8. Component Structure Example ✅
+```typescript
+interface UserMenuProps {
+  isCollapsed: boolean;
+}
 
-## 📝 Database Schema Reference
-
-### Users Table
-```sql
-id: uuid (from auth.users)
-email: string
-first_name: string
-last_name: string
-current_account_id: uuid (nullable)
-created_at: timestamp
+const UserMenu: React.FC<UserMenuProps> = ({ isCollapsed }) => {
+  return (
+    <div className={cn(
+      "px-3 py-2 transition-all duration-200",
+      isCollapsed ? "w-16" : "w-64"
+    )}>
+      {/* Menu Content */}
+    </div>
+  );
+};
 ```
 
-### Accounts Table
-```sql
-id: uuid
-name: string
-slug: string
-created_at: timestamp
-```
-
-### Accounts Users Table
-```sql
-account_id: uuid
-user_id: uuid
-role: string ('admin')
-```
-
-## 🔍 Testing Scenarios
-1. Happy Path:
-   - [ ] All fields filled correctly
-   - [ ] Successful submission
-   - [ ] Proper redirect
-
-2. Error Cases:
-   - [ ] Invalid email format
-   - [ ] Weak password
-   - [ ] Missing required fields
-   - [ ] Network error
-   - [ ] Server error
-
-3. Edge Cases:
-   - [ ] Duplicate email
-   - [ ] Special characters in company name
-   - [ ] Very long input values
+### 9. Testing & Polish
+- [ ] Test collapse/expand behavior
+- [ ] Verify transitions match sidebar
+- [ ] Test mobile responsiveness
+- [ ] Ensure consistent styling across states
+- [ ] Verify hover behaviors match existing patterns

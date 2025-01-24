@@ -15,7 +15,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       <div className="flex">
         <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
         <main className={`flex-1 transition-all duration-200 ${isCollapsed ? "pl-16" : "pl-64"}`}>
-        <Header />
+      
           <div className="content-area">{children}</div>
         </main>
       </div>
