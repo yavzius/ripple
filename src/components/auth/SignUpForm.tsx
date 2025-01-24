@@ -95,9 +95,35 @@ export const SignUpForm = () => {
 
     setLoading(true);
     try {
-      // TODO: Implement form submission logic
+      const { data, error: functionError } = await supabase.functions.invoke('new-account-setup', {
+        body: {
+          email: formData.email,
+          password: formData.password,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          companyName: formData.companyName
+        }
+      });
+
+      if (functionError) {
+        throw functionError;
+      }
+      
+      // Sign in the user with the newly created credentials
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password
+      });
+
+      if (signInError) {
+        throw signInError;
+      }
+
+      // Redirect to the dashboard
+      navigate('/dashboard');
+      
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }

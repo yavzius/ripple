@@ -68,22 +68,21 @@ Create a single-form sign-up experience that collects user and account informati
 - [x] Test function locally
 
 ### 5️⃣ Connect Frontend to Edge Function
-- [ ] Add loading state management
-- [ ] Implement form submission handler
-- [ ] Add error handling for API responses
-- [ ] Add success handling and redirect
-- [ ] Test the complete flow
+- [x] Add loading state management
+- [x] Implement form submission handler
+- [x] Add error handling for API responses
+- [x] Add success handling and redirect
 
 ### 6️⃣ Add Loading States
-- [ ] Add loading spinner during submission
-- [ ] Disable form while submitting
-- [ ] Show appropriate loading messages
+- [x] Add loading spinner during submission
+- [x] Disable form while submitting
+- [x] Show appropriate loading messages
 
 ### 7️⃣ Error Handling
-- [ ] Display API errors clearly
-- [ ] Add retry mechanism for failed submissions
-- [ ] Handle network errors
-- [ ] Show user-friendly error messages
+- [x] Display API errors clearly
+- [x] Add retry mechanism for failed submissions
+- [x] Handle network errors
+- [x] Show user-friendly error messages
 
 ### 8️⃣ Testing
 - [ ] Test form validation
