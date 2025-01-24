@@ -1,139 +1,193 @@
-# Atomic Implementation Plan for Junior Dev
+# Admin Invite System Implementation Plan
 
-Here's a step-by-step breakdown of building the inbox, focusing on UI, data flow, and integrations:
+## 1. Enhance Existing Settings UI
+### Update User Management Section
+- [ ] Modify existing Dialog form in Settings.tsx:
+  - [ ] Required fields:
+    - [ ] Email (required)
+    - [ ] First Name (required)
+    - [ ] Last Name (optional)
+    - [ ] Role (required)
+  - [ ] Add form validation using react-hook-form:
+    - [ ] Email format validation
+    - [ ] Required field checks
+  - [ ] Update loading states during submission
 
-## 1. Set Up Layout Structure ✓
-**Objective**: Create an Outlook-style two-panel layout.
-
-- [x] Left Panel (`<ConversationList />`):
-  - [x] Displays a scrollable list of conversation cards
-  - [x] Each card shows:
-    - [x] Customer company name
-    - [x] Last message snippet
-    - [x] Timestamp
-    - [x] Happiness score (colored)
-    - [x] Status badge
-
-- [x] Right Panel (`<MessageThread />`):
-  - [x] Shows messages in a threaded view
-  - [x] Includes header with customer context (company name, channel, status)
-
-## 2. Fetch Conversations ✓
-**Objective**: Load conversations from Supabase with sorting/filtering.
-
-- [x] Basic query implementation:
+### Admin Access Control
+- [ ] Add role verification to Settings page:
   ```typescript
-  const { data: conversations } = await supabase
-    .from('conversations')
-    .select('*, customer:customer_id(*, customer_company:customer_company_id(*))')
-    .eq('account_id', activeAccountId)
-    .order('created_at', { ascending: false })
-    .order('happiness_score', { ascending: true })
-  ```
-
-- [x] Filters:
-  - [x] Channel filtering: `.eq('channel', selectedChannel)`
-  - [x] Status filtering: `.eq('status', selectedStatus)`
-
-## 3. Handle Conversation Selection ✓
-**Objective**: When a user clicks a conversation, load its messages.
-
-- [x] Store selected conversation ID in React state
-- [x] Fetch messages where `conversation_id = selectedConversationId`
-- [x] Update URL path (e.g., `/inbox/conv_123`)
-
-## 4. Auto-Resolution by AI ✓
-**Objective**: AI processes new messages via edge functions.
-
-- [x] Workflow:
-  - [x] Database webhook triggers on message insert:
-    - [x] `auto-responder`: Generates AI responses using GPT-4
-      - [x] Fetches conversation context
-      - [x] Generates contextual response
-      - [x] Inserts AI response into messages table
-    - [x] `support-assistant`: Analyzes sentiment and updates scores
-      - [x] Calculates happiness score (0-1)
-      - [x] Updates message with sentiment score
-  - [x] LangSmith integration for tracking AI operations
-  - [x] Response generation features:
-    - [x] Matches user's message length
-    - [x] Mirrors tone and formality
-    - [x] Uses simple language (70% 1-2 syllables)
-    - [x] Contextual emoji usage
-    - [x] Natural conversation flow
-
-## 5. Ticket Auto-Assignment
-**Objective**: Assign tickets to agents based on issue type.
-
-- [x] Steps:
-  - [x] Add ticket classification to auto-responder function:
-    - [x] Analyze message content for issue type
-    - [x] Calculate confidence score
-    - [x] If confidence < 80%, create ticket
-
-## 6. Agent Actions
-**Objective**: Let agents manually resolve or override AI.
-
-- [x] Manual Resolution:
-  - [x] Add "Resolve" button in `<MessageThread />`
-  - [x] On click: Update conversation status to "resolved"
-
-- [ ] Override AI:
-  - [ ] Allow agents to edit/delete AI messages:
-    - [x] Add edit/delete buttons for AI messages
-    - [x] Add edit mode with textarea for message content
-    - [x] Add confirmation dialog for deletion
-
-## 7. Real-Time Updates ✓
-**Objective**: Show new messages instantly.
-
-- [x] Supabase real-time subscriptions:
-  ```typescript
-  supabase
-    .channel('messages')
-    .on('postgres_changes', {
-      event: 'INSERT',
-      schema: 'public',
-      table: 'messages'
-    }, (payload) => {
-      if (payload.new.conversation_id === selectedConversationId) {
-        // Add message to UI
+  const { workspace } = useWorkspace();
+  const [isAdmin, setIsAdmin] = useState(false);
+  
+  // Check if user has admin role in accounts_users table
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && workspace) {
+        const { data } = await supabase
+          .from('accounts_users')
+          .select('role')
+          .eq('user_id', user.id)
+          .eq('account_id', workspace.id)
+          .single();
+        
+        setIsAdmin(data?.role === 'admin');
       }
-      // Trigger desktop notification
-      new Notification("New message", { body: payload.new.content });
-    });
+    };
+    checkAdminStatus();
+  }, [workspace]);
+  ```
+- [ ] Hide "Add User" button for non-admins
+- [ ] Redirect non-admins away from Settings page
+
+## 2. Backend Integration
+### Update Form Submission
+- [ ] Modify existing onSubmit handler:
+  ```typescript
+  const onSubmit = async (data: UserFormData) => {
+    try {
+      // 1. Verify admin status
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !workspace) return;
+
+      // 2. Check for existing user/account association
+      const { data: existingUser } = await supabase
+        .from('accounts_users')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('account_id', workspace.id)
+        .single();
+
+      if (existingUser) {
+        toast.error("User already has access to this account");
+        return;
+      }
+
+      // 3. Create or get user record
+      let userId;
+      const { data: userRecord } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', data.email)
+        .single();
+
+      if (userRecord) {
+        userId = userRecord.id;
+      } else {
+        const { data: newUser } = await supabase
+          .from('users')
+          .insert({
+            email: data.email,
+            first_name: data.firstName,
+            last_name: data.lastName
+          })
+          .select()
+          .single();
+        userId = newUser.id;
+      }
+
+      // 4. Create accounts_users association
+      await supabase
+        .from('accounts_users')
+        .insert({
+          user_id: userId,
+          account_id: workspace.id,
+          role: data.role
+        });
+
+      // 5. Update UI state
+      toast.success("User added successfully");
+      setIsAddUserDialogOpen(false);
+    } catch (error) {
+      toast.error("Failed to add user");
+      console.error(error);
+    }
+  };
   ```
 
-## 8. Merge Conversations
-**Objective**: Let agents merge duplicate threads.
+### Add Error Handling
+- [ ] Add error states to form:
+  - [ ] Display specific error messages:
+    - [ ] "User already has access to this account"
+    - [ ] "Failed to create user record"
+    - [ ] "Failed to associate user with account"
+  - [ ] Show errors in UI using toast notifications
+  - [ ] Maintain form state on error
 
-- [x] Steps:
-  - [x] Add "Merge" button in `<ConversationList />`
-  - [x] On click:
-    - [x] Fetch conversations with same `customer_company_id`
-    - [x] Let agent select target conversation
-    - [x] Update all messages to use target `conversation_id`
-    - [x] Hide merge button when no eligible conversations exist
+## 3. User List Management
+### Enhance Users State
+- [ ] Update users data structure to match database:
+  ```typescript
+  interface User {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+    email: string | null;
+    role: string | null;  // From accounts_users table
+  }
+  ```
+- [ ] Add loading state for users list
+- [ ] Implement real-time updates using Supabase subscriptions
 
-## 9. File Attachments
-**Objective**: Allow sending/receiving files.
+### List Functionality
+- [ ] Replace mock data with real users query:
+  ```typescript
+  const fetchUsers = async () => {
+    if (!workspace) return;
+    
+    const { data } = await supabase
+      .from('accounts_users')
+      .select(`
+        user_id,
+        role,
+        users:user_id (
+          id,
+          first_name,
+          last_name,
+          email
+        )
+      `)
+      .eq('account_id', workspace.id);
+    
+    setUsers(data?.map(record => ({
+      id: record.users.id,
+      first_name: record.users.first_name,
+      last_name: record.users.last_name,
+      email: record.users.email,
+      role: record.role
+    })) || []);
+  };
+  ```
+- [ ] Show user role from accounts_users table
+- [ ] Implement list refresh after successful invite
 
-- [x] Steps:
-  - [x] Add file upload button to `<MessageThread />`
-  - [x] Upload file to Supabase Storage
-  - [x] Insert file metadata into files table linked to `message_id`
-  - [x] Display thumbnails for images, icons for PDFs
+## 4. Success Handling
+### UI Updates
+- [ ] Clear form after successful invite
+- [ ] Close dialog after success
+- [ ] Show success toast: "User added successfully"
+- [ ] Refresh users list to show new user
 
-## 10. Testing & QA
-**Objective**: Ensure all features work as expected.
+### State Management
+- [ ] Update local users state with new user
+- [ ] Handle Supabase real-time updates
+- [ ] Maintain consistent UI state
 
-- [ ] Checklist:
-  - [x] Conversations sort by newest first
-  - [ ] AI resolves high-confidence conversations
-  - [ ] Tickets auto-assign to correct agent
-  - [x] Desktop notifications trigger on new messages
+## 5. Testing
+### Test Cases
+- [ ] Admin access:
+  - [ ] Settings page access control
+  - [ ] Add User button visibility
+  - [ ] Form submission permissions
 
-## Next Steps
-- [x] Start with Step 1 (Layout) and Step 2 (Fetch Conversations)
-- [x] Test data loading with dummy conversations
-- [ ] Gradually implement AI logic and real-time updates
+- [ ] Invite functionality:
+  - [ ] Form validation
+  - [ ] Duplicate user prevention
+  - [ ] Success/error notifications
+  - [ ] Dialog behavior
+
+- [ ] Users list:
+  - [ ] Loading states
+  - [ ] Refresh after invite
+  - [ ] Role display
+  - [ ] Real-time updates
