@@ -1,16 +1,24 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Auth as SupabaseAuth } from "@supabase/auth-ui-react";
-import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthError } from "@supabase/supabase-js";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useForm } from "react-hook-form";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+interface SignInForm {
+  email: string;
+  password: string;
+}
 
 const Auth = () => {
   const navigate = useNavigate();
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { register, handleSubmit, formState: { errors } } = useForm<SignInForm>();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -30,6 +38,21 @@ const Auth = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  const onSubmit = async (data: SignInForm) => {
+    setIsLoading(true);
+    setErrorMessage("");
+    
+    const { error } = await supabase.auth.signInWithPassword({
+      email: data.email,
+      password: data.password,
+    });
+
+    if (error) {
+      setErrorMessage(getErrorMessage(error));
+    }
+    setIsLoading(false);
+  };
 
   const getErrorMessage = (error: AuthError) => {
     try {
@@ -81,45 +104,50 @@ const Auth = () => {
           "ring-1 ring-purple-400/10 transition-all duration-200",
           "hover:bg-card/60 hover:ring-purple-400/20"
         )}>
-          <SupabaseAuth
-            supabaseClient={supabase}
-            appearance={{
-              theme: ThemeSupa,
-              variables: {
-                default: {
-                  colors: {
-                    brand: 'rgb(167, 139, 250)',
-                    brandAccent: 'rgb(192, 132, 252)',
-                    brandButtonText: 'white',
-                    inputBackground: 'white',
-                    inputBorder: 'rgba(167, 139, 250, 0.2)',
-                    inputBorderHover: 'rgba(167, 139, 250, 0.4)',
-                    inputBorderFocus: 'rgb(167, 139, 250)',
-                    inputText: 'rgb(15, 15, 15)',
-                    inputPlaceholder: 'rgb(128, 128, 128)',
-                  },
-                },
-              },
-              className: {
-                container: 'space-y-4',
-                button: 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm rounded-md px-4 py-2 text-sm font-medium transition-colors',
-                input: 'flex h-10 w-full rounded-md border px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:cursor-not-allowed disabled:opacity-50 transition-colors',
-                label: 'text-sm font-medium text-foreground',
-                loader: 'text-purple-400',
-                anchor: 'text-purple-400 hover:text-purple-300',
-              },
-            }}
-            providers={[]}
-            theme="light"
-          />
-          
-          <div className="mt-4 text-center">
-            <Link to="/sign-up">
-              <Button variant="ghost" className="text-purple-400 hover:text-purple-300">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                {...register("email", { required: "Email is required" })}
+                placeholder="name@example.com"
+              />
+              {errors.email && (
+                <p className="text-sm text-red-500">{errors.email.message}</p>
+              )}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                {...register("password", { required: "Password is required" })}
+                placeholder="••••••••"
+              />
+              {errors.password && (
+                <p className="text-sm text-red-500">{errors.password.message}</p>
+              )}
+            </div>
+
+            <Button 
+              type="submit" 
+              className="w-full"
+              disabled={isLoading}
+            >
+              {isLoading ? "Signing in..." : "Sign in"}
+            </Button>
+
+            <div className="text-center">
+              <Link 
+                to="/sign-up" 
+                className="text-purple-400 hover:text-purple-300 text-sm"
+              >
                 Don't have an account? Sign up
-              </Button>
-            </Link>
-          </div>
+              </Link>
+            </div>
+          </form>
         </div>
 
         <div className="text-center text-sm text-muted-foreground">
