@@ -23,27 +23,27 @@ Create a single-form sign-up experience that collects user and account informati
 - [x] Add error message display area
 
 ### 3️⃣ Implement Form Validation
-- [ ] Add email format validation
+- [x] Add email format validation
   ```typescript
   // Example validation
   const isValidEmail = (email: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
   ```
-- [ ] Add password validation (minimum 6 characters only)
+- [x] Add password validation (minimum 6 characters only)
   ```typescript
   const isValidPassword = (password: string) => {
     return password.length >= 6;
   }
   ```
-- [ ] Add required field validation for all fields
-- [ ] Add company name validation:
+- [x] Add required field validation for all fields
+- [x] Add company name validation:
   ```typescript
   const isValidCompanyName = (name: string) => {
     return name.length >= 2 && name.length <= 20;
   }
   ```
-- [ ] Add slug generation from company name:
+- [x] Add slug generation from company name:
   ```typescript
   const generateSlug = (name: string) => {
     return name.toLowerCase()
@@ -51,21 +51,21 @@ Create a single-form sign-up experience that collects user and account informati
              .replace(/\s+/g, '-');
   }
   ```
-- [ ] Show validation errors under each field
-- [ ] Disable submit button when form is invalid
+- [x] Show validation errors under each field
+- [x] Disable submit button when form is invalid
 
 ### 4️⃣ Create Edge Function
-- [ ] Setup basic edge function structure
-- [ ] Add input validation
-- [ ] Implement database operations in this order:
-  1. [ ] Create auth user
-  2. [ ] Create users record
-  3. [ ] Create accounts record
-  4. [ ] Create accounts_users record
-  5. [ ] Update user's current_account_id
-- [ ] Add error handling for each step
-- [ ] Add transaction wrapper
-- [ ] Test function locally
+- [x] Setup basic edge function structure
+- [x] Add input validation
+- [x] Implement database operations in this order:
+  1. [x] Create auth user
+  2. [x] Create users record
+  3. [x] Create accounts record
+  4. [x] Create accounts_users record
+  5. [x] Update user's current_account_id
+- [x] Add error handling for each step
+- [x] Add transaction wrapper
+- [x] Test function locally
 
 ### 5️⃣ Connect Frontend to Edge Function
 - [ ] Add loading state management
