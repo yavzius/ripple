@@ -4,9 +4,20 @@ import {
   BarChart3, BookOpen, GraduationCap, Ticket, MessageSquare, Users,
   Sparkles, Bot, Store, Zap, ShieldCheck, Boxes
 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Landing() {
   const navigate = useNavigate();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAuthenticated(!!session);
+    };
+    checkAuth();
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#1E1B2E] text-white overflow-hidden">
@@ -23,14 +34,23 @@ export default function Landing() {
             <div className="font-medium text-lg tracking-tight">Ripple</div>
           </div>
           <div className="flex gap-4">
-            <Button variant="ghost" onClick={() => navigate("/auth")} 
-              className="text-white/70 hover:text-white">
-              Sign In
-            </Button>
-            <Button onClick={() => navigate("/auth")} 
-              className="bg-purple-400 text-[#1E1B2E] hover:bg-purple-400/90">
-              Get Started
-            </Button>
+            {isAuthenticated ? (
+              <Button onClick={() => navigate("/dashboard")} 
+                className="bg-purple-400 text-[#1E1B2E] hover:bg-purple-400/90">
+                Dashboard
+              </Button>
+            ) : (
+              <>
+                <Button variant="ghost" onClick={() => navigate("/auth")} 
+                  className="text-white/70 hover:text-white">
+                  Sign In
+                </Button>
+                <Button onClick={() => navigate("/auth")} 
+                  className="bg-purple-400 text-[#1E1B2E] hover:bg-purple-400/90">
+                  Get Started
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -177,7 +197,7 @@ export default function Landing() {
                 Transforming B2B beauty brand operations with intelligent support solutions.
               </p>
               <div className="text-sm text-white/40">
-                © 2024 Ripple. All rights reserved.
+                © 2025 Ripple. All rights reserved.
               </div>
             </div>
             {[
