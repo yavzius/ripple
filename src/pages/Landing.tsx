@@ -35,7 +35,7 @@ export default function Landing() {
           </div>
           <div className="flex gap-4">
             {isAuthenticated ? (
-              <Button onClick={() => navigate("/dashboard")} 
+              <Button onClick={() => navigate("/inbox")} 
                 className="bg-purple-400 text-[#1E1B2E] hover:bg-purple-400/90">
                 Dashboard
               </Button>
