@@ -28,6 +28,7 @@ import CompanyDetail from "./pages/CompanyDetail";
 import NewContact from "./pages/NewContact";
 import Inbox from "./pages/Inbox";
 import WorkspaceSettings from "./pages/WorkspaceSettings";
+import Landing from "./pages/Landing";
 
 const InitialLoadingState = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -80,16 +81,15 @@ function App() {
     <TooltipProvider>
       <BrowserRouter>
         <Routes>
-          {!isAuthenticated ? (
-            <>
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/customer" element={<CustomerPortal />} />
-              <Route path="/chat/:workspaceId" element={<ChatbotPortal />} />
-              <Route path="*" element={<Navigate to="/auth" replace />} />
-            </>
-          ) : (
+          <Route path="/" element={<Landing />} />
+          <Route path="/customer" element={<CustomerPortal />} />
+          <Route path="/chat/:workspaceId" element={<ChatbotPortal />} />
+          <Route path="/auth" element={
+            isAuthenticated ? <Navigate to="/dashboard" replace /> : <Auth />
+          } />
+          {isAuthenticated ? (
             <Route element={<WorkspaceLayout />}>
-              <Route path="/" element={<Index />} />
+              <Route path="/dashboard" element={<Index />} />
               <Route path="/inbox" element={<Inbox />} />
               <Route path="/inbox/:conversationId" element={<Inbox />} />
               <Route path="/tickets" element={<TicketsPage />} />
@@ -110,6 +110,8 @@ function App() {
               <Route path="/companies/:id/contacts/new" element={<NewContact />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
+          ) : (
+            <Route path="*" element={<Navigate to="/auth" replace />} />
           )}
         </Routes>
       </BrowserRouter>
