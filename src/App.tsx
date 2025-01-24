@@ -21,6 +21,7 @@ import CustomerPortal from "./pages/CustomerPortal";
 import ChatbotPortal from "./pages/ChatbotPortal";
 import WorkspaceLayout from "./components/layout/WorkspaceLayout";
 import Auth from "./pages/Auth";
+import SignUp from "./pages/SignUp";
 import { Skeleton } from "@/components/ui/skeleton";
 import NewCustomerCompany from "./pages/NewCustomerCompany";
 import Companies from "./pages/Companies";
@@ -86,6 +87,9 @@ function App() {
           <Route path="/chat/:workspaceId" element={<ChatbotPortal />} />
           <Route path="/auth" element={
             isAuthenticated ? <Navigate to="/dashboard" replace /> : <Auth />
+          } />
+          <Route path="/sign-up" element={
+            isAuthenticated ? <Navigate to="/dashboard" replace /> : <SignUp />
           } />
           {isAuthenticated ? (
             <Route element={<WorkspaceLayout />}>

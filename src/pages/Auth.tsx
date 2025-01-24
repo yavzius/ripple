@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Auth as SupabaseAuth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthError } from "@supabase/supabase-js";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -111,6 +112,14 @@ const Auth = () => {
             providers={[]}
             theme="light"
           />
+          
+          <div className="mt-4 text-center">
+            <Link to="/sign-up">
+              <Button variant="ghost" className="text-purple-400 hover:text-purple-300">
+                Don't have an account? Sign up
+              </Button>
+            </Link>
+          </div>
         </div>
 
         <div className="text-center text-sm text-muted-foreground">

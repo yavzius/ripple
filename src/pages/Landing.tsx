@@ -45,7 +45,7 @@ export default function Landing() {
                   className="text-white/70 hover:text-white">
                   Sign In
                 </Button>
-                <Button onClick={() => navigate("/auth")} 
+                <Button onClick={() => navigate("/sign-up")} 
                   className="bg-purple-400 text-[#1E1B2E] hover:bg-purple-400/90">
                   Get Started
                 </Button>
@@ -73,7 +73,7 @@ export default function Landing() {
             </p>
             <Button 
               size="lg" 
-              onClick={() => navigate("/auth")}
+              onClick={() => navigate("/sign-up")}
               className="bg-purple-400 text-[#1E1B2E] hover:bg-purple-400/90 h-12 px-8 text-base"
             >
               Get Started
@@ -169,7 +169,7 @@ export default function Landing() {
               </p>
               <Button 
                 size="lg" 
-                onClick={() => navigate("/auth")}
+                onClick={() => navigate("/sign-up")}
                 className="bg-purple-400 text-[#1E1B2E] hover:bg-purple-400/90 h-12 px-8 text-base"
               >
                 Get Started
