@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { mergeConversations } from "@/lib/actions";
 import { toast } from "sonner";
+import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 
 interface ConversationListProps {
   accountId: string;
@@ -87,8 +88,101 @@ export function ConversationList({ accountId, selectedId, onSelect, onFirstLoad 
     }
   };
 
+  // Subscribe to real-time changes
   useEffect(() => {
-    fetchConversations();
+    let isSubscribed = true;
+
+    const setupSubscriptions = async () => {
+      // Initial fetch
+      if (isSubscribed) {
+        await fetchConversations();
+      }
+
+      // Create a single channel for all changes
+      const channel = supabase
+        .channel('inbox-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'conversations',
+            filter: `account_id=eq.${accountId}`,
+          },
+          (payload: RealtimePostgresChangesPayload<{
+            id: string;
+            status: string;
+            happiness_score: number | null;
+            created_at: string | null;
+          }>) => {
+            if (!isSubscribed) return;
+            
+            // Handle conversation changes directly
+            if (payload.eventType === 'INSERT') {
+              fetchConversations(); // Fetch all data for new conversations
+            } else if (payload.eventType === 'UPDATE') {
+              setConversations(prev => prev.map(conv => 
+                conv.id === payload.new.id 
+                  ? { ...conv, ...payload.new }
+                  : conv
+              ));
+            } else if (payload.eventType === 'DELETE') {
+              setConversations(prev => prev.filter(conv => conv.id !== payload.old.id));
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'messages',
+            filter: `conversation_id=in.(${conversations.map(c => c.id).join(',')})`,
+          },
+          async (payload: RealtimePostgresChangesPayload<{
+            id: string;
+            conversation_id: string;
+            content: string;
+            created_at: string | null;
+          }>) => {
+            if (!isSubscribed) return;
+
+            // For message changes, only update the specific conversation's messages
+            let conversationId: string | undefined;
+            
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+              conversationId = payload.new.conversation_id;
+            } else if (payload.eventType === 'DELETE') {
+              conversationId = payload.old.conversation_id;
+            }
+
+            if (!conversationId) return;
+
+            // Fetch the updated conversation's messages
+            const { data: messagesData } = await supabase
+              .from('messages')
+              .select('id, content, created_at')
+              .eq('conversation_id', conversationId)
+              .order('created_at', { ascending: false });
+
+            if (messagesData) {
+              setConversations(prev => prev.map(conv => 
+                conv.id === conversationId 
+                  ? { ...conv, messages: messagesData }
+                  : conv
+              ));
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        isSubscribed = false;
+        channel.unsubscribe();
+      };
+    };
+
+    setupSubscriptions();
   }, [accountId]);
 
   const getHappinessColor = (score: number | null) => {

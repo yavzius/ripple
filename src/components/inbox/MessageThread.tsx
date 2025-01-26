@@ -191,8 +191,9 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
 
     loadInitialData();
 
+    // Create a single channel for both messages and conversation updates
     const channel = supabase
-      .channel(`conversation_${conversationId}`)
+      .channel(`thread_${conversationId}`)
       .on(
         "postgres_changes",
         {
@@ -201,9 +202,57 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
           table: "messages",
           filter: `conversation_id=eq.${conversationId}`,
         },
-        () => {
-          if (isSubscribed) {
-            fetchMessages();
+        async (payload) => {
+          if (!isSubscribed) return;
+
+          // For inserts and updates, fetch the complete message with attachments
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            const { data: newMessage, error } = await supabase
+              .from("messages")
+              .select(`
+                id,
+                content,
+                sender_type,
+                created_at,
+                message_attachments (
+                  id,
+                  file_name,
+                  file_path,
+                  content_type,
+                  file_size
+                )
+              `)
+              .eq("id", payload.new.id)
+              .single();
+
+            if (!error && newMessage) {
+              // Transform the message to include attachment URLs
+              const messageWithUrls: Message = {
+                id: newMessage.id,
+                content: newMessage.content,
+                sender_type: newMessage.sender_type as SenderType,
+                created_at: newMessage.created_at,
+                attachments: newMessage.message_attachments?.map(attachment => ({
+                  ...attachment,
+                  url: supabase.storage
+                    .from('attachments')
+                    .getPublicUrl(attachment.file_path)
+                    .data.publicUrl
+                }))
+              };
+
+              setMessages(prev => {
+                const index = prev.findIndex(m => m.id === messageWithUrls.id);
+                if (index === -1) {
+                  return [...prev, messageWithUrls];
+                }
+                const newMessages = [...prev];
+                newMessages[index] = messageWithUrls;
+                return newMessages;
+              });
+            }
+          } else if (payload.eventType === 'DELETE') {
+            setMessages(prev => prev.filter(m => m.id !== payload.old.id));
           }
         }
       )
@@ -215,9 +264,10 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
           table: "conversations",
           filter: `id=eq.${conversationId}`,
         },
-        () => {
-          if (isSubscribed) {
-            fetchConversation();
+        (payload) => {
+          if (!isSubscribed) return;
+          if (payload.eventType === 'UPDATE') {
+            setConversation(prev => prev ? { ...prev, ...payload.new } : null);
           }
         }
       )
@@ -328,39 +378,11 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
         await uploadFiles(message.id);
       }
 
-      // Fetch the updated message with attachments
-      const { data: updatedMessage, error: fetchError } = await supabase
-        .from("messages")
-        .select(`
-          *,
-          attachments:message_attachments (
-            id,
-            file_name,
-            file_path,
-            content_type,
-            file_size
-          )
-        `)
-        .eq("id", message.id)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      // Add URLs to attachments
-      const messageWithUrls = {
-        ...updatedMessage,
-        attachments: updatedMessage.attachments?.map(attachment => ({
-          ...attachment,
-          url: supabase.storage
-            .from('attachments')
-            .getPublicUrl(attachment.file_path)
-            .data.publicUrl
-        }))
-      };
-
-      // Update messages state directly (skip subscription)
-      setMessages(prev => [...prev, messageWithUrls]);
+      // Clear the input
       setNewMessage("");
+      setSelectedFiles([]);
+      
+      // The real-time subscription will handle updating the messages
     } catch (error) {
       console.error("Error sending message:", error);
       toast.error("Failed to send message");
