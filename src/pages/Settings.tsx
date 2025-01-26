@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -18,132 +18,155 @@ interface UserFormData {
   email: string;
   firstName: string;
   lastName?: string;
-  role: 'admin' | 'agent';
+  role: UserRole;
 }
+
+type UserRole = 'admin' | 'agent';
 
 interface User {
   id: string;
   first_name: string | null;
   last_name: string | null;
   email: string | null;
-  role: string | null;  // From accounts_users table
+  role: UserRole | null;
+}
+
+interface DatabaseUser {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  created_at: string;
+  current_account_id: string | null;
+}
+
+interface AccountUser {
+  user_id: string;
+  role: UserRole;
+  account_id: string;
 }
 
 export default function Settings() {
   const { workspace } = useWorkspace();
   const { user } = useAuth();
-  const [aiEnabled, setAiEnabled] = useState(true);
+  const [aiEnabled, setAiEnabled] = useState<boolean>(true);
   const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
   const [users, setUsers] = useState<User[]>([]);
-  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
-  const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
-  const [newUserEmail, setNewUserEmail] = useState("");
-  const [newUserRole, setNewUserRole] = useState("agent");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoadingUsers, setIsLoadingUsers] = useState<boolean>(true);
+  const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState<boolean>(false);
+  const [newUserEmail, setNewUserEmail] = useState<string>("");
+  const [newUserRole, setNewUserRole] = useState<UserRole>("agent");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
-  const [isDeletingUser, setIsDeletingUser] = useState(false);
+  const [isDeletingUser, setIsDeletingUser] = useState<boolean>(false);
   const [userToManage, setUserToManage] = useState<User | null>(null);
-  const [isManageDialogOpen, setIsManageDialogOpen] = useState(false);
-  const [isUpdatingRole, setIsUpdatingRole] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<'admin' | 'agent'>('agent');
-  const [loading, setLoading] = useState(false);
+  const [isManageDialogOpen, setIsManageDialogOpen] = useState<boolean>(false);
+  const [isUpdatingRole, setIsUpdatingRole] = useState<boolean>(false);
+  const [selectedRole, setSelectedRole] = useState<UserRole>('agent');
+  const [loading, setLoading] = useState<boolean>(false);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     if (!workspace) return;
     
-    setIsLoadingUsers(true);
     try {
-      const { data, error } = await supabase
+      setIsLoadingUsers(true);
+      const { data: accountUsers, error: accountUsersError } = await supabase
         .from('accounts_users')
-        .select(`
-          user_id,
-          role,
-          users:user_id (
-            id,
-            first_name,
-            last_name,
-            email
-          )
-        `)
+        .select('user_id, role')
         .eq('account_id', workspace.id);
 
-      if (error) {
-        toast.error("Failed to fetch users");
-        console.error(error);
-        return;
-      }
-      
-      setUsers(data?.map(record => ({
-        id: record.users.id,
-        first_name: record.users.first_name,
-        last_name: record.users.last_name,
-        email: record.users.email,
-        role: record.role
-      })) || []);
+      if (accountUsersError) throw accountUsersError;
+
+      const userIds = (accountUsers as AccountUser[]).map(au => au.user_id);
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .in('id', userIds);
+
+      if (userError) throw userError;
+
+      const combinedUsers: User[] = (userData as DatabaseUser[]).map(u => ({
+        id: u.id,
+        first_name: u.first_name,
+        last_name: u.last_name,
+        email: u.email,
+        role: (accountUsers as AccountUser[]).find(au => au.user_id === u.id)?.role || null
+      }));
+
+      setUsers(combinedUsers);
     } catch (error) {
-      toast.error("Failed to fetch users");
-      console.error(error);
+      console.error('Error fetching users:', error);
+      toast.error('Failed to fetch users');
     } finally {
       setIsLoadingUsers(false);
-    }
-  };
-
-  useEffect(() => {
-    if (workspace) {
-      fetchUsers();
-
-      // Set up real-time subscription
-      const usersSubscription = supabase
-        .channel('accounts_users_changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'accounts_users',
-            filter: `account_id=eq.${workspace.id}`
-          },
-          () => {
-            // Refresh the users list when changes occur
-            fetchUsers();
-          }
-        )
-        .subscribe();
-
-      // Cleanup subscription on unmount
-      return () => {
-        usersSubscription.unsubscribe();
-      };
     }
   }, [workspace]);
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setCurrentUserEmail(user.email || "");
-      }
+    if (!workspace) return;
+
+    let isSubscribed = true;
+    const channel = supabase
+      .channel('accounts_users_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'accounts_users',
+          filter: `account_id=eq.${workspace.id}`
+        },
+        () => {
+          if (isSubscribed) {
+            fetchUsers();
+          }
+        }
+      )
+      .subscribe();
+
+    fetchUsers();
+
+    return () => {
+      isSubscribed = false;
+      channel.unsubscribe();
     };
-    getUser();
-  }, []);
+  }, [workspace, fetchUsers]);
 
   useEffect(() => {
+    if (!user) return;
+    setCurrentUserEmail(user.email || "");
+  }, [user]);
+
+  useEffect(() => {
+    if (!user || !workspace) return;
+
+    let isSubscribed = true;
+
     const checkAdminStatus = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user && workspace) {
-        const { data } = await supabase
+      try {
+        const { data, error } = await supabase
           .from('accounts_users')
           .select('role')
           .eq('user_id', user.id)
           .eq('account_id', workspace.id)
           .single();
         
-        setIsAdmin(data?.role === 'admin');
+        if (error) throw error;
+        if (isSubscribed) {
+          setIsAdmin(data?.role === 'admin');
+        }
+      } catch (error) {
+        console.error('Error checking admin status:', error);
       }
     };
+
     checkAdminStatus();
-  }, [workspace]);
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [user, workspace]);
 
   const form = useForm<UserFormData>({
     defaultValues: {
@@ -535,7 +558,7 @@ export default function Settings() {
                             size="sm"
                             onClick={() => {
                               setUserToManage(user);
-                              setSelectedRole(user.role as 'admin' | 'agent');
+                              setSelectedRole(user.role as UserRole);
                               setIsManageDialogOpen(true);
                             }}
                           >
@@ -568,7 +591,7 @@ export default function Settings() {
               <Label>Role</Label>
               <select
                 value={selectedRole}
-                onChange={(e) => setSelectedRole(e.target.value as 'admin' | 'agent')}
+                onChange={(e) => setSelectedRole(e.target.value as UserRole)}
                 className="w-full p-2 border rounded-md"
               >
                 <option value="agent">Agent</option>

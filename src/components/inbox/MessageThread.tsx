@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,63 +21,88 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+type ConversationStatus = 'open' | 'resolved' | 'closed';
+type SenderType = 'customer' | 'agent' | 'system';
+
 interface MessageThreadProps {
   conversationId: string;
+}
+
+interface Attachment {
+  id: string;
+  file_name: string;
+  file_path: string;
+  content_type: string;
+  file_size: number;
+  url?: string;
 }
 
 interface Message {
   id: string;
   content: string;
-  sender_type: string;
+  sender_type: SenderType;
   created_at: string | null;
-  attachments?: {
-    id: string;
-    file_name: string;
-    file_path: string;
-    content_type: string;
-    file_size: number;
-    url?: string;
-  }[];
+  attachments?: Attachment[];
+}
+
+interface CustomerCompany {
+  id: string;
+  name: string;
+}
+
+interface Customer {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  customer_company: CustomerCompany | null;
 }
 
 interface ConversationDetails {
   id: string;
-  status: string;
+  status: ConversationStatus;
   channel: string;
-  customer: {
-    id: string;
-    first_name: string | null;
-    last_name: string | null;
-    customer_company: {
-      id: string;
-      name: string;
-    } | null;
-  };
+  customer: Customer;
 }
 
-const statusColors = {
+interface DatabaseMessage {
+  id: string;
+  content: string;
+  sender_type: string;
+  created_at: string;
+  message_attachments?: DatabaseAttachment[];
+}
+
+interface DatabaseAttachment {
+  id: string;
+  file_name: string;
+  file_path: string;
+  content_type: string;
+  file_size: number;
+}
+
+const statusColors: Record<ConversationStatus, string> = {
   open: "bg-green-100 text-green-800",
   resolved: "bg-blue-100 text-blue-800",
   closed: "bg-gray-100 text-gray-800",
-} as const;
+};
 
 export function MessageThread({ conversationId }: MessageThreadProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversation, setConversation] = useState<ConversationDetails | null>(null);
-  const [newMessage, setNewMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSending, setIsSending] = useState(false);
-  const [isAIProcessing, setIsAIProcessing] = useState(false);
-  const [isResolving, setIsResolving] = useState(false);
+  const [newMessage, setNewMessage] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isSending, setIsSending] = useState<boolean>(false);
+  const [isAIProcessing, setIsAIProcessing] = useState<boolean>(false);
+  const [isResolving, setIsResolving] = useState<boolean>(false);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
-  const [editedContent, setEditedContent] = useState("");
+  const [editedContent, setEditedContent] = useState<string>("");
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
   const [editContainerWidth, setEditContainerWidth] = useState<number | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
 
-  useEffect(() => {
-    const fetchConversation = async () => {
+  const fetchConversation = useCallback(async () => {
+    try {
       const { data, error } = await supabase
         .from("conversations")
         .select(`
@@ -95,20 +120,24 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
         .eq("id", conversationId)
         .single();
 
-      if (error) {
-        console.error("Error fetching conversation:", error);
-        return;
-      }
+      if (error) throw error;
+      setConversation(data as ConversationDetails);
+    } catch (error) {
+      console.error("Error fetching conversation:", error);
+      toast.error("Failed to load conversation details");
+    }
+  }, [conversationId]);
 
-      setConversation(data);
-    };
-
-    const fetchMessages = async () => {
-      const { data, error } = await supabase
+  const fetchMessages = useCallback(async () => {
+    try {
+      const { data: messagesData, error: messagesError } = await supabase
         .from("messages")
         .select(`
-          *,
-          attachments:message_attachments (
+          id,
+          content,
+          sender_type,
+          created_at,
+          message_attachments (
             id,
             file_name,
             file_path,
@@ -119,150 +148,86 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true });
 
-      if (error) {
-        console.error("Error fetching messages:", error);
-        toast.error("Failed to load messages");
+      if (messagesError) throw messagesError;
+
+      if (!messagesData) {
+        setMessages([]);
+        setIsLoading(false);
         return;
       }
 
-      // Update messages with attachment URLs
-      const messagesWithAttachments = data?.map(message => ({
-        ...message,
-        attachments: message.attachments?.map(attachment => ({
-          ...attachment,
+      // Transform the data to match our Message type
+      const transformedMessages: Message[] = messagesData.map((msg: DatabaseMessage) => ({
+        id: msg.id,
+        content: msg.content,
+        sender_type: msg.sender_type as SenderType,
+        created_at: msg.created_at,
+        attachments: msg.message_attachments?.map(att => ({
+          ...att,
           url: supabase.storage
             .from('attachments')
-            .getPublicUrl(attachment.file_path)
+            .getPublicUrl(att.file_path)
             .data.publicUrl
         }))
-      })) || [];
+      }));
 
-      setMessages(messagesWithAttachments);
+      setMessages(transformedMessages);
       setIsLoading(false);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+      toast.error("Failed to load messages");
+      setIsLoading(false);
+    }
+  }, [conversationId]);
+
+  useEffect(() => {
+    let isSubscribed = true;
+
+    const loadInitialData = async () => {
+      if (isSubscribed) {
+        await Promise.all([fetchConversation(), fetchMessages()]);
+      }
     };
 
-    fetchConversation();
-    fetchMessages();
+    loadInitialData();
 
-    // Subscribe to new messages
     const channel = supabase
-      .channel("messages")
+      .channel(`conversation_${conversationId}`)
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*",
           schema: "public",
           table: "messages",
           filter: `conversation_id=eq.${conversationId}`,
         },
-        async (payload) => {
-          // Skip if this is our own message (we'll handle it in handleSendMessage)
-          if (payload.new.sender_type === 'agent') return;
-
-          const { data: messageWithAttachments, error } = await supabase
-            .from("messages")
-            .select(`
-              *,
-              attachments:message_attachments (
-                id,
-                file_name,
-                file_path,
-                content_type,
-                file_size
-              )
-            `)
-            .eq("id", payload.new.id)
-            .single();
-
-          if (error) {
-            console.error("Error fetching message details:", error);
-            return;
+        () => {
+          if (isSubscribed) {
+            fetchMessages();
           }
-
-          const messageWithUrls = {
-            ...messageWithAttachments,
-            attachments: messageWithAttachments.attachments?.map(attachment => ({
-              ...attachment,
-              url: supabase.storage
-                .from('attachments')
-                .getPublicUrl(attachment.file_path)
-                .data.publicUrl
-            }))
-          };
-
-          setMessages(prev => [...prev, messageWithUrls]);
-
-          // Process customer messages with AI
-          if (messageWithUrls.sender_type === "customer" && conversation?.customer) {
-            setIsAIProcessing(true);
-            try {
-              // Analyze sentiment
-              const happinessScore = await analyzeSentiment(messageWithUrls.content, {
-                messageId: messageWithUrls.id,
-                conversationId,
-              });
-
-              // Update conversation happiness score
-              await supabase
-                .from("conversations")
-                .update({ happiness_score: happinessScore })
-                .eq("id", conversationId);
-
-              // Generate AI response
-              const aiResponse = await generateCustomerSupportResponse(
-                {
-                  messages: messages.concat(messageWithUrls),
-                  customer: conversation.customer,
-                  customer_company: conversation.customer.customer_company!,
-                },
-                {
-                  conversationId,
-                  customerId: conversation.customer.id,
-                  companyId: conversation.customer.customer_company!.id,
-                }
-              );
-
-              if (aiResponse.confidence >= 0.8) {
-                // Insert AI response
-                await supabase.from("messages").insert({
-                  conversation_id: conversationId,
-                  content: aiResponse.response,
-                  sender_type: "ai",
-                });
-
-                // Update conversation status
-                await supabase
-                  .from("conversations")
-                  .update({
-                    status: "resolved",
-                    resolved_at: new Date().toISOString(),
-                  })
-                  .eq("id", conversationId);
-              } else {
-                // Create a ticket for human review
-                await supabase.from("tickets").insert({
-                  account_id: conversation.customer.customer_company!.id,
-                  conversation_id: conversationId,
-                  status: "open",
-                  priority: "medium",
-                  title: "AI Confidence Low - Human Review Required",
-                  description: `AI confidence (${aiResponse.confidence}) below threshold.\nLast message: ${messageWithUrls.content}`,
-                });
-              }
-            } catch (error) {
-              console.error("Error processing AI response:", error);
-            } finally {
-              setIsAIProcessing(false);
-            }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "conversations",
+          filter: `id=eq.${conversationId}`,
+        },
+        () => {
+          if (isSubscribed) {
+            fetchConversation();
           }
         }
       )
       .subscribe();
 
     return () => {
+      isSubscribed = false;
       channel.unsubscribe();
     };
-  }, [conversationId]);
+  }, [conversationId, fetchConversation, fetchMessages]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);

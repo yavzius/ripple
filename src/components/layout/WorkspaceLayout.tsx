@@ -7,14 +7,31 @@ const WorkspaceLayout = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    let isSubscribed = true;
+
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate("/auth");
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (isSubscribed && !session) {
+          navigate("/auth", { replace: true });
+        }
+      } catch (error) {
+        console.error("Auth check failed:", error);
       }
     };
 
     checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session) {
+        navigate("/auth", { replace: true });
+      }
+    });
+
+    return () => {
+      isSubscribed = false;
+      subscription.unsubscribe();
+    };
   }, [navigate]);
 
   return (

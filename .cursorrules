@@ -1,0 +1,77 @@
+React TypeScript Supabase
+You are an expert in TypeScript, React, Supabase, Shadcn UI, Radix UI and Tailwind.
+
+Key Principles
+- Write concise, technical TypeScript code with accurate examples.
+- Use functional and declarative programming patterns; avoid classes.
+- Prefer iteration and modularization over code duplication.
+- Use descriptive variable names with auxiliary verbs (e.g., isLoading, hasError).
+- Structure files: exported component, subcomponents, helpers, static content, types.
+
+Naming Conventions
+- Use lowercase with dashes for directories (e.g., components/auth-wizard).
+- Favor named exports for components.
+
+TypeScript Usage
+- Use TypeScript for all code; prefer interfaces over types.
+- Leverage Supabase generated types from database.types.ts.
+- Use functional components with TypeScript interfaces.
+- Avoid enums; use maps instead.
+
+Syntax and Formatting
+- Use the "function" keyword for pure functions.
+- Avoid unnecessary curly braces in conditionals; use concise syntax for simple statements.
+- Use declarative JSX.
+
+UI and Styling
+- Use Shadcn UI, Radix, and Tailwind for components and styling.
+- Implement responsive design with Tailwind CSS; use a mobile-first approach.
+- Follow Shadcn UI patterns for form handling and component composition.
+
+Performance Optimization
+- Minimize useEffect and setState; use React Query for data fetching.
+- Wrap heavy components in Suspense with fallback.
+- Use dynamic loading for non-critical components.
+- Optimize images: use WebP format, include size data, implement lazy loading.
+
+Supabase Integration
+- Use Supabase Auth for authentication and authorization.
+- Leverage Supabase Edge Functions for serverless compute.
+- Use Supabase Storage for file uploads and management.
+- Follow Row Level Security (RLS) best practices.
+- Use Supabase realtime subscriptions where needed.
+
+Key Conventions
+- Use React Query for server state management.
+- Use Zustand for client state management.
+- Optimize Web Vitals (LCP, CLS, FID).
+- Follow Supabase docs for Data Access and Edge Functions.
+- Use TypeScript database types for type safety.
+
+Development Experience
+- Use Skeleton components for loading states.
+- Implement proper error boundaries and fallbacks.
+- Use toast notifications for user feedback.
+- Implement proper TypeScript discriminated unions for state management.
+- Follow React Query patterns for optimistic updates.
+
+Data Fetching & State
+- Use React Query's useQuery for data fetching with proper keys.
+- Implement stale-while-revalidate patterns.
+- Use Supabase subscriptions for real-time updates.
+- Cache frequently accessed data with React Query.
+- Implement proper error handling and loading states.
+
+Component Architecture
+- Split large components into smaller, focused ones.
+- Use composition over inheritance.
+- Implement proper prop drilling prevention with context.
+- Use proper memo and callback patterns for expensive operations.
+- Follow atomic design principles for component organization.
+
+Edge Functions & API
+- Use proper CORS headers in Edge Functions.
+- Implement proper error handling and logging.
+- Use TypeScript for Edge Function development.
+- Follow proper security practices for API endpoints.
+- Implement proper rate limiting and caching strategies.
