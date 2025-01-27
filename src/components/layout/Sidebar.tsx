@@ -70,11 +70,6 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: SidebarProps) => {
       icon: MessageSquare,
     },
     {
-      title: "Tickets",
-      href: "/tickets",
-      icon: Ticket,
-    },
-    {
       title: "Companies",
       href: "/companies",
       icon: Users,
@@ -83,21 +78,6 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: SidebarProps) => {
       title: "Knowledge Base",
       href: "/knowledge-base",
       icon: BookOpen,
-    },
-    {
-      title: "Training",
-      href: "/training",
-      icon: GraduationCap,
-    },
-    {
-      title: "Analytics",
-      href: "/analytics",
-      icon: BarChart3,
-    },
-    {
-      title: "Updates",
-      href: "/updates",
-      icon: Bell,
     },
     {
       title: "Settings",
