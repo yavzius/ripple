@@ -18,7 +18,6 @@ import Analytics from "./pages/Analytics";
 import Updates from "./pages/Updates";
 import Settings from "./pages/Settings";
 import CustomerPortal from "./pages/CustomerPortal";
-import ChatbotPortal from "./pages/ChatbotPortal";
 import WorkspaceLayout from "./components/layout/WorkspaceLayout";
 import Auth from "./pages/Auth";
 import SignUp from "./pages/SignUp";
@@ -29,6 +28,7 @@ import CompanyDetail from "./pages/CompanyDetail";
 import NewContact from "./pages/NewContact";
 import Inbox from "./pages/Inbox";
 import Landing from "./pages/Landing";
+import BrandChat from "./pages/public/BrandChat";
 
 const InitialLoadingState = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -83,7 +83,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/customer" element={<CustomerPortal />} />
-          <Route path="/chat/:workspaceId" element={<ChatbotPortal />} />
+          <Route path="/chat/:brandSlug" element={<BrandChat />} />
           <Route path="/auth" element={
             isAuthenticated ? <Navigate to="/inbox" replace /> : <Auth />
           } />

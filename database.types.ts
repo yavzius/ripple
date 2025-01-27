@@ -133,7 +133,7 @@ export type Database = {
           account_id: string
           channel: string
           created_at: string | null
-          customer_id: string
+          customer_id: string | null
           happiness_score: number | null
           id: string
           resolved_at: string | null
@@ -143,7 +143,7 @@ export type Database = {
           account_id: string
           channel?: string
           created_at?: string | null
-          customer_id: string
+          customer_id?: string | null
           happiness_score?: number | null
           id?: string
           resolved_at?: string | null
@@ -153,7 +153,7 @@ export type Database = {
           account_id?: string
           channel?: string
           created_at?: string | null
-          customer_id?: string
+          customer_id?: string | null
           happiness_score?: number | null
           id?: string
           resolved_at?: string | null
