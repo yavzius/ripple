@@ -10,6 +10,7 @@ export default function Inbox() {
   const { conversationId } = useParams();
   const navigate = useNavigate();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [conversationCount, setConversationCount] = useState(0);
 
   const handleSelectConversation = (id: string) => {
     navigate(`/inbox/${id}`);
@@ -31,7 +32,9 @@ export default function Inbox() {
         <div className="p-3 border-b flex items-center justify-between">
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-medium">Inbox</h2>
-            <div className="text-xs text-muted-foreground">11</div>
+            {conversationCount > 0 && (
+              <div className="text-xs text-muted-foreground">{conversationCount}</div>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <button 
@@ -59,6 +62,7 @@ export default function Inbox() {
           onFirstLoad={handleFirstLoad}
           isSearchOpen={isSearchOpen}
           onSearchOpenChange={setIsSearchOpen}
+          onConversationsChange={setConversationCount}
         />
       </div>
       <div className="flex-1 bg-muted/5">

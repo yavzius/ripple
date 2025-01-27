@@ -19,6 +19,7 @@ interface ConversationListProps {
   onFirstLoad?: (id: string) => void;
   isSearchOpen?: boolean;
   onSearchOpenChange?: (open: boolean) => void;
+  onConversationsChange?: (count: number) => void;
 }
 
 interface Conversation {
@@ -34,7 +35,7 @@ interface Conversation {
       id: string;
       name: string;
     } | null;
-  };
+  } | null;
   messages: {
     id: string;
     content: string;
@@ -60,7 +61,8 @@ export function ConversationList({
   onSelect, 
   onFirstLoad,
   isSearchOpen,
-  onSearchOpenChange 
+  onSearchOpenChange,
+  onConversationsChange
 }: ConversationListProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -98,6 +100,12 @@ export function ConversationList({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [searchQuery, isSearchOpen, onSearchOpenChange]);
+
+  useEffect(() => {
+    if (onConversationsChange) {
+      onConversationsChange(conversations.length);
+    }
+  }, [conversations, onConversationsChange]);
 
   const fetchConversations = async () => {
     try {
@@ -366,8 +374,8 @@ export function ConversationList({
                 <div className="flex items-center gap-2 mb-0.5">
                   <div className="font-medium text-sm truncate">
                     {searchQuery ? 
-                      highlightText(conversation.customer?.customer_company?.name || "Unknown Company", searchQuery)
-                      : (conversation.customer?.customer_company?.name || "Unknown Company")
+                      highlightText(conversation.customer?.customer_company?.name || "Public User", searchQuery)
+                      : (conversation.customer?.customer_company?.name || "Public User")
                     }
                   </div>
                   <Badge 

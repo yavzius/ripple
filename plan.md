@@ -23,6 +23,6 @@
 - [x] Add simple spam prevention (message frequency check)
 
 ## Security Considerations
-- [ ] Implement basic rate limiting per client
-- [ ] Add file upload size limits
-- [ ] Create basic content filtering for spam prevention
+- [x] Implement basic rate limiting per client
+- [x] Add file upload size limits
+- [x] Create basic content filtering for spam prevention

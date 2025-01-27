@@ -104,7 +104,7 @@ async function classifyTicket(content: string, conversationContext: any): Promis
 2. Provide a confidence score between 0 and 1
 3. Write a one-line summary of the issue
 
-Return the response in this exact format:
+Return the response in this exact json format:
 {
   "issue_type": "category_name",
   "confidence": 0.XX,

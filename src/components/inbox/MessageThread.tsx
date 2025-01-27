@@ -61,7 +61,7 @@ interface ConversationDetails {
   id: string;
   status: ConversationStatus;
   channel: string;
-  customer: Customer;
+  customer: Customer | null;
 }
 
 interface DatabaseMessage {
@@ -549,7 +549,7 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
           <div className="flex items-center gap-2">
             <CardTitle className="flex items-center gap-2">
               <Building2 className="w-5 h-5" />
-              {conversation?.customer?.customer_company?.name || 'Loading...'}
+              {conversation?.customer?.customer_company?.name || 'Public User'}
             </CardTitle>
             <Badge variant="outline" className={cn(
               conversation?.status && statusColors[conversation.status as keyof typeof statusColors]
