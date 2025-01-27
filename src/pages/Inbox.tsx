@@ -4,9 +4,10 @@ import { ConversationList } from "@/components/inbox/ConversationList";
 import { MessageThread } from "@/components/inbox/MessageThread";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Inbox() {
-  const { workspace } = useWorkspace();
+  const { workspace, loading, error } = useWorkspace();
   const { conversationId } = useParams();
   const navigate = useNavigate();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -22,8 +23,40 @@ export default function Inbox() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="h-screen flex">
+        <div className="w-[400px] border-r flex flex-col bg-white">
+          <div className="p-3 border-b">
+            <Skeleton className="h-5 w-24" />
+          </div>
+          <div className="flex-1 p-4 space-y-3">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+          </div>
+        </div>
+        <div className="flex-1 bg-muted/5 flex items-center justify-center">
+          <Skeleton className="h-8 w-64" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="h-screen flex items-center justify-center text-muted-foreground">
+        <p>Failed to load workspace. Please try again.</p>
+      </div>
+    );
+  }
+
   if (!workspace?.id) {
-    return <div>No workspace selected</div>;
+    return (
+      <div className="h-screen flex items-center justify-center text-muted-foreground">
+        <p>No workspace available. Please create or select a workspace.</p>
+      </div>
+    );
   }
 
   return (

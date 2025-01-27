@@ -20,6 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type ConversationStatus = 'open' | 'resolved' | 'closed';
 type SenderType = 'customer' | 'agent' | 'system';
@@ -535,11 +536,58 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
   };
 
   if (isLoading) {
-    return <div className="p-4">Loading messages...</div>;
+    return (
+      <div className="flex flex-col h-full">
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2">
+                <Skeleton className="h-5 w-5" />
+                <Skeleton className="h-6 w-32" />
+              </CardTitle>
+              <Skeleton className="h-5 w-20" />
+            </div>
+            <Skeleton className="h-9 w-24" />
+          </div>
+        </CardHeader>
+        <CardContent className="flex flex-col h-[calc(100%-8rem)]">
+          <ScrollArea className="flex-1 pr-4">
+            <div className="space-y-4 py-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className={cn(
+                  "flex flex-col",
+                  i % 2 === 0 ? "items-end" : "items-start"
+                )}>
+                  <div className={cn(
+                    "max-w-[80%] rounded-lg p-4",
+                    i % 2 === 0 ? "bg-blue-50" : "bg-gray-50"
+                  )}>
+                    <Skeleton className="h-4 w-64 mb-2" />
+                    <Skeleton className="h-4 w-48" />
+                  </div>
+                  <Skeleton className="h-3 w-16 mt-1" />
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+          <div className="border-t pt-4 mt-auto">
+            <div className="flex gap-2">
+              <Skeleton className="h-10 w-10" />
+              <Skeleton className="flex-1 h-10" />
+              <Skeleton className="h-10 w-10" />
+            </div>
+          </div>
+        </CardContent>
+      </div>
+    );
   }
 
   if (!conversation) {
-    return <div className="p-4">Conversation not found</div>;
+    return (
+      <div className="h-full flex items-center justify-center text-muted-foreground">
+        <p>Conversation not found</p>
+      </div>
+    );
   }
 
   return (
