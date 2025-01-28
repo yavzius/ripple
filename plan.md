@@ -1,28 +1,56 @@
-# Customer-Facing Chat System Implementation Plan
+# Autoresponder Implementation Plan (Simplified)
 
-## Phase 1: Public Chat Route Setup
-- [x] Create new route handler for `/@[brandSlug]` pattern
-- [x] Create `BrandChat` page component with basic layout
-- [x] Implement brand slug validation and lookup against accounts table
-- [x] Create loading and error states for invalid/non-existent brand slugs
+## Phase 1: Core Setup ✅
+- [x] Configure simplified agent:
+  - [x] Three main states: COLLECTING, VERIFYING, HANDOFF
+  - [x] Basic context management for single conversation
+- [x] Create unified extraction tool:
+  - [x] Email detection and validation (confidence > 0.9)
+  - [x] Company name extraction (confidence > 0.8)
+  - [x] Basic information extraction for optional fields
+- [x] Essential monitoring:
+  - [x] Track success/failure rates
+  - [x] Basic error logging
 
-## Phase 2: Chat Interface Components
-- [x] Create `PublicMessageThread` component based on existing `MessageThread`
-- [x] Implement simplified version without agent/admin features
-- [x] Create customer message input component
-- [x] Reuse existing file attachment system from agent interface
-- [x] Add real-time message subscription for public threads
-- [x] Implement markdown support for messages
-- [x] Add message delivery confirmations
-- [x] Implement responsive design for mobile users
+## Phase 2: Critical Flow Implementation ✅
+- [x] Build core conversation flow:
+  - [x] Natural information collection
+    - Auto-store high confidence extractions
+    - Max 3 attempts for required fields
+  - [x] Simple verification logic
+    - Existing customer → login flow
+    - New customer → collection flow
+- [x] Implement essential error handling:
+  - [x] Clear failure messages
+  - [x] Retry prompts for low confidence
+  - [x] Graceful conversation ending
 
-## Phase 3: Client-Side Session Management
-- [x] Implement browser storage for temporary chat session
-- [x] Add "Clear Chat" functionality for users
-- [x] Add basic rate limiting for message sending
-- [x] Add simple spam prevention (message frequency check)
+## Phase 3: Integration & Handoff ✅
+- [x] Customer management:
+  - [x] Use existing new-contact function
+  - [x] Simple company association
+- [x] Implement handoff triggers:
+  - [x] Sentiment check (< 0.3)
+  - [x] Email requirement enforcement
+  - [x] Clear handoff messaging
 
-## Security Considerations
-- [x] Implement basic rate limiting per client
-- [x] Add file upload size limits
-- [x] Create basic content filtering for spam prevention
+## Phase 4: Testing & Quality ✅
+- [x] Essential test scenarios:
+  - [x] Main happy path
+    - Natural email/company provision
+    - Existing customer recognition
+  - [x] Common error cases
+    - Low confidence handling
+    - Missing information flow
+- [x] Key metrics tracking:
+  - [x] Information extraction accuracy
+  - [x] Handoff success rate
+  - [x] Customer satisfaction indicators
+
+## Future Enhancements (Post-MVP)
+- Advanced state management
+- Additional information extraction
+- Complex conversation repairs
+- Detailed analytics
+- A/B testing
+- Performance optimization

@@ -4,7 +4,10 @@
     "@supabase/supabase-js": "npm:@supabase/supabase-js@2.38.0",
     "openai": "npm:openai@4.24.1",
     "@langchain/core/": "npm:@langchain/core/",
-    "langsmith": "npm:langsmith@0.1.3"
+    "@langchain/openai": "npm:@langchain/openai",
+    "@langchain/langgraph": "npm:@langchain/langgraph",
+    "@langchain/langgraph-checkpoint": "npm:@langchain/langgraph-checkpoint",
+    "langsmith": "npm:langsmith"
   },
     "permissions": {
       "env": ["OPENAI_API_KEY", "LANGSMITH_ENDPOINT", "LANGSMITH_API_KEY", "LANGSMITH_PROJECT"],

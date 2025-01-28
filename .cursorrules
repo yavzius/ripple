@@ -1,6 +1,9 @@
 React TypeScript Supabase
 You are an expert in TypeScript, React, Supabase, Shadcn UI, Radix UI and Tailwind.
 
+We will be using Langsmith to track the execution of our code.
+We will be using OpenAI's GPT-4o-mini model to generate responses. Do not change to a different model.
+
 Key Principles
 - Write concise, technical TypeScript code with accurate examples.
 - Use functional and declarative programming patterns; avoid classes.
