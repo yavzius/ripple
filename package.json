@@ -11,11 +11,13 @@
     "preview": "vite preview",
     "types": "npx supabase gen types typescript --project-id 'bnxxzhsmkzndgwqvicpj' --schema public > database.types.ts",
     "functions": "supabase functions deploy",
-    "test:ai": "tsx src/lib/__tests__/langsmith-service.test.ts"
+    "test:ai": "tsx src/lib/__tests__/langsmith-service.test.ts",
+    "test:auto": "tsx _tests_/auto.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
     "@langchain/core": "^0.3.36",
+    "@langchain/langgraph": "^0.2.41",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
     "@radix-ui/react-aspect-ratio": "^1.1.0",
@@ -56,6 +58,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
     "date-fns": "^3.6.0",
+    "dotenv": "^16.4.7",
     "embla-carousel-react": "^8.3.0",
     "input-otp": "^1.2.4",
     "langchain": "^0.3.12",

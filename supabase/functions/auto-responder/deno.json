@@ -1,7 +1,7 @@
 {
   "imports": {
-    "std/http/server": "https://deno.land/std@0.168.0/http/server.ts",
-    "@supabase/supabase-js": "npm:@supabase/supabase-js@2.38.0",
+    "@std/http": "jsr:@std/http",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js",
     "openai": "npm:openai@4.24.1",
     "@langchain/core/": "npm:@langchain/core/",
     "@langchain/openai": "npm:@langchain/openai",
