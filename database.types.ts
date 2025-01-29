@@ -128,86 +128,6 @@ export type Database = {
           },
         ]
       }
-      conversation_events: {
-        Row: {
-          conversation_id: string
-          created_at: string
-          details: Json
-          event_type: string
-          id: string
-        }
-        Insert: {
-          conversation_id: string
-          created_at?: string
-          details?: Json
-          event_type: string
-          id?: string
-        }
-        Update: {
-          conversation_id?: string
-          created_at?: string
-          details?: Json
-          event_type?: string
-          id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "conversation_events_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "conversations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      conversation_states: {
-        Row: {
-          attempts: number
-          conversation_id: string
-          created_at: string
-          extracted_info: Json
-          id: string
-          last_message_id: string | null
-          state: string
-          updated_at: string
-        }
-        Insert: {
-          attempts?: number
-          conversation_id: string
-          created_at?: string
-          extracted_info?: Json
-          id?: string
-          last_message_id?: string | null
-          state: string
-          updated_at?: string
-        }
-        Update: {
-          attempts?: number
-          conversation_id?: string
-          created_at?: string
-          extracted_info?: Json
-          id?: string
-          last_message_id?: string | null
-          state?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "conversation_states_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "conversations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversation_states_last_message_id_fkey"
-            columns: ["last_message_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       conversations: {
         Row: {
           account_id: string
@@ -217,6 +137,7 @@ export type Database = {
           happiness_score: number | null
           id: string
           resolved_at: string | null
+          state: Json | null
           status: string
         }
         Insert: {
@@ -227,6 +148,7 @@ export type Database = {
           happiness_score?: number | null
           id?: string
           resolved_at?: string | null
+          state?: Json | null
           status?: string
         }
         Update: {
@@ -237,6 +159,7 @@ export type Database = {
           happiness_score?: number | null
           id?: string
           resolved_at?: string | null
+          state?: Json | null
           status?: string
         }
         Relationships: [
