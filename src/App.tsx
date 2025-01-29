@@ -29,6 +29,7 @@ import NewContact from "./pages/NewContact";
 import Inbox from "./pages/Inbox";
 import Landing from "./pages/Landing";
 import BrandChat from "./pages/public/BrandChat";
+import ImportPage from "./pages/knowledge-base/ImportPage";
 
 const InitialLoadingState = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -99,6 +100,7 @@ function App() {
               <Route path="/tickets/new" element={<NewTicket />} />
               <Route path="/tickets/:id" element={<TicketDetail />} />
               <Route path="/knowledge-base" element={<KnowledgeBase />} />
+              <Route path="/knowledge-base/import" element={<ImportPage />} />
               <Route path="/knowledge-base/:id" element={<DocumentDetail />} />
               <Route path="/training" element={<Training />} />
               <Route path="/training/:id" element={<TrainingCardDetail />} />

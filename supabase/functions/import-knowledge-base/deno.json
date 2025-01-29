@@ -1,0 +1,15 @@
+{
+  "tasks": {
+    "serve": "deno run --watch -A index.ts"
+  },
+  "imports": {
+    "langsmith": "npm:langsmith@0.3.4-rc.0",
+    "langsmith/": "npm:/langsmith@0.3.4-rc.0/",
+    "openai": "npm:openai@4.80.1"
+  },
+  "compilerOptions": {
+    "allowJs": true,
+    "lib": ["deno.window"],
+    "strict": true
+  }
+} 

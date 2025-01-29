@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Book, File, Plus, Search, Upload } from "lucide-react";
+import { Book, File, Globe, Plus, Search, Upload } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -65,6 +65,12 @@ const KnowledgeBase = () => {
           </p>
         </div>
         <div className="flex gap-2">
+          <Link to="/knowledge-base/import">
+            <Button variant="outline">
+              <Globe className="mr-2 h-4 w-4" />
+              Import from Website
+            </Button>
+          </Link>
           <Button>
             <Upload className="mr-2 h-4 w-4" />
             Upload Document
