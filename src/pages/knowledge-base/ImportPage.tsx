@@ -1,4 +1,3 @@
-import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card.tsx";
 import { ImportForm } from "../../components/knowledge-base/import-form.tsx";
 import { useNavigate } from "react-router-dom";
