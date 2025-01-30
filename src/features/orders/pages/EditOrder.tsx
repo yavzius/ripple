@@ -28,7 +28,7 @@ export default function EditOrder() {
         backTo="/orders"
       >
         <div className="flex flex-col items-center justify-center space-y-2">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground">
             The order you're looking for doesn't exist or you don't have access to it.
           </p>
         </div>
@@ -38,7 +38,7 @@ export default function EditOrder() {
 
   return (
     <PageLayout
-      title="Edit Order"
+      title={`Edit Order #${order.order_number}`}
       backTo={`/orders/${orderId}`}
     >
       <OrderForm

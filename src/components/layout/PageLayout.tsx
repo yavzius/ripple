@@ -1,10 +1,8 @@
 import { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageTitle } from "./PageTitle";
 import { Button } from "@/components/ui/button";
-import type { ButtonProps } from "@/components/ui/button";
 
 interface PageLayoutProps {
   title: string;
@@ -12,10 +10,11 @@ interface PageLayoutProps {
   primaryAction?: {
     label: string;
     href: string;
-    icon?: ReactNode;
-    variant?: ButtonProps["variant"];
   };
-  actions?: ReactNode;
+  secondaryAction?: {
+    label: string;
+    href: string;
+  };
   children: ReactNode;
   className?: string;
 }
@@ -24,7 +23,7 @@ export function PageLayout({
   title,
   backTo,
   primaryAction,
-  actions,
+  secondaryAction,
   children,
   className,
 }: PageLayoutProps) {
@@ -39,20 +38,21 @@ export function PageLayout({
           title={title}
           backTo={backTo}
         />
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2">
+          {secondaryAction && (
+            <Button asChild size="sm" variant="outline">
+              <Link to={secondaryAction.href}>
+                {secondaryAction.label}
+              </Link>
+            </Button>
+          )}
           {primaryAction && (
-            <Button 
-              asChild 
-              size="sm"
-              variant={primaryAction.variant}
-            >
+            <Button asChild size="sm">
               <Link to={primaryAction.href}>
-                {primaryAction.icon || <Plus className="mr-2 h-4 w-4" />}
                 {primaryAction.label}
               </Link>
             </Button>
           )}
-          {actions}
         </div>
       </div>
       <div className="min-w-0 flex-1">{children}</div>

@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
-import { ProductDetails } from "../components/ProductDetails";
 import { useProduct } from "../hooks/use-products";
+import { ProductDetails } from "../components/ProductDetails";
 import { PageLayout } from "@/components/layout/PageLayout";
 
 export default function ProductView() {
@@ -35,5 +35,16 @@ export default function ProductView() {
     );
   }
 
-  return <ProductDetails product={product} />;
+  return (
+    <PageLayout
+      title={product.name}
+      backTo="/products"
+      primaryAction={{
+        label: "Edit Product",
+        href: `/products/${id}/edit`
+      }}
+    >
+      <ProductDetails product={product} />
+    </PageLayout>
+  );
 } 
