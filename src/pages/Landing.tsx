@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { 
-  BarChart3, BookOpen, GraduationCap, Ticket, MessageSquare, Users,
-  Sparkles, Bot, Store, Zap, ShieldCheck, Boxes
+  BarChart3, GraduationCap, 
+  Sparkles, Bot, Store, Zap, ShieldCheck, 
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";

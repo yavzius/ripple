@@ -9,7 +9,7 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "types": "npx supabase gen types typescript --project-id 'bnxxzhsmkzndgwqvicpj' --schema public > database.types.ts",
+    "types": "npx supabase gen types typescript --project-id 'bnxxzhsmkzndgwqvicpj' --schema public > src/types/database.types.ts",
     "functions": "supabase functions deploy",
     "test:ai": "tsx src/lib/__tests__/langsmith-service.test.ts",
     "test:auto": "tsx _tests_/auto.ts",

@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import type { Database } from "../../database.types";
+import type { Database } from "@/types/database.types";
 
 type Workspace = Database["public"]["Tables"]["accounts"]["Row"];
 
