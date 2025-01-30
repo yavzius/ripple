@@ -1,13 +1,8 @@
 import { Link, useLocation } from "react-router-dom";
 import {
-  BarChart3,
-  Bell,
-  BookOpen,
-  GraduationCap,
-  Ticket,
   Settings,
   Users,
-  CircleDotDashed,
+  Package,
   Pin,
   MessageSquare,
   ShoppingCart,
@@ -78,17 +73,12 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: SidebarProps) => {
     {
       title: "Products",
       href: "/products",
-      icon: ShoppingCart,
+      icon: Package,
     },
     {
       title: "Orders",
       href: "/orders",
       icon: ShoppingCart,
-    },
-    {
-      title: "Knowledge Base",
-      href: "/knowledge-base",
-      icon: BookOpen,
     },
     {
       title: "Settings",
