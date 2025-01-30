@@ -18,18 +18,16 @@ export function useWorkspaceCompanies() {
   const { workspace } = useWorkspace();
 
   return useQuery({
-    queryKey: workspaceKeys.companies(workspace?.id ?? ""),
+    queryKey: ["workspace", workspace?.id, "companies"],
     queryFn: async () => {
-      if (!workspace?.id) return [];
-
       const { data, error } = await supabase
         .from("customer_companies")
-        .select("id, name")
-        .eq("account_id", workspace.id)
+        .select("*")
+        .eq("account_id", workspace?.id)
         .order("name");
 
       if (error) throw error;
-      return (data || []) as SelectOption[];
+      return data;
     },
     enabled: !!workspace?.id,
   });
@@ -87,6 +85,25 @@ export function useWorkspaceCustomers() {
 
       if (error) throw error;
       return data || [];
+    },
+    enabled: !!workspace?.id,
+  });
+}
+
+export function useWorkspaceProducts() {
+  const { workspace } = useWorkspace();
+
+  return useQuery({
+    queryKey: ["workspace", workspace?.id, "products"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .eq("account_id", workspace?.id)
+        .order("name");
+
+      if (error) throw error;
+      return data;
     },
     enabled: !!workspace?.id,
   });

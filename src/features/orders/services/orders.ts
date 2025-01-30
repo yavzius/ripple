@@ -1,9 +1,15 @@
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types/database.types';
-
-export type Order = Database['public']['Tables']['orders']['Row'];
-export type OrderInsert = Database['public']['Tables']['orders']['Insert'];
-export type OrderUpdate = Database['public']['Tables']['orders']['Update'];
+import type {
+  Order,
+  OrderInsert,
+  OrderUpdate,
+  OrderWithDetails,
+  OrderItem,
+  OrderItemInsert,
+  OrderItemUpdate,
+  OrderItemWithProduct,
+} from '../types';
 
 export type OrderWithCompany = Order & {
   company: Database['public']['Tables']['customer_companies']['Row'] | null;
@@ -19,9 +25,9 @@ export const ORDER_STATUS = {
 export type OrderStatus = typeof ORDER_STATUS[keyof typeof ORDER_STATUS];
 
 /**
- * Get all orders for an account with optional company details
+ * Get all orders for an account with optional company details and items
  */
-export async function getOrders(accountId: string): Promise<OrderWithCompany[]> {
+export async function getOrders(accountId: string): Promise<OrderWithDetails[]> {
   const { data: orders, error } = await supabase
     .from('orders')
     .select(`
@@ -30,19 +36,30 @@ export async function getOrders(accountId: string): Promise<OrderWithCompany[]> 
         id,
         name,
         domain
+      ),
+      items:order_items (
+        *,
+        product:products (
+          *
+        )
       )
     `)
     .eq('account_id', accountId)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return orders as OrderWithCompany[];
+  
+  return orders.map((order) => ({
+    ...order,
+    items: order.items || [],
+    total: calculateOrderTotal(order.items || []),
+  })) as OrderWithDetails[];
 }
 
 /**
- * Get a single order by ID with company details
+ * Get a single order by ID with company details and items
  */
-export async function getOrderById(orderId: string): Promise<OrderWithCompany | null> {
+export async function getOrderById(orderId: string): Promise<OrderWithDetails | null> {
   const { data: order, error } = await supabase
     .from('orders')
     .select(`
@@ -51,27 +68,55 @@ export async function getOrderById(orderId: string): Promise<OrderWithCompany | 
         id,
         name,
         domain
+      ),
+      items:order_items (
+        *,
+        product:products (
+          *
+        )
       )
     `)
     .eq('id', orderId)
     .single();
 
   if (error) throw error;
-  return order as OrderWithCompany;
+  
+  return order ? {
+    ...order,
+    items: order.items || [],
+    total: calculateOrderTotal(order.items || []),
+  } as OrderWithDetails : null;
 }
 
 /**
- * Create a new order
+ * Create a new order with items
  */
-export async function createOrder(order: OrderInsert): Promise<Order> {
-  const { data, error } = await supabase
+export async function createOrder(
+  order: OrderInsert,
+  items: Array<{ product_id: string; quantity: number }>
+): Promise<OrderWithDetails> {
+  const { data: newOrder, error: orderError } = await supabase
     .from('orders')
     .insert(order)
     .select()
     .single();
 
-  if (error) throw error;
-  return data;
+  if (orderError) throw orderError;
+
+  if (items.length > 0) {
+    const orderItems = items.map((item) => ({
+      order_id: newOrder.id,
+      ...item,
+    }));
+
+    const { error: itemsError } = await supabase
+      .from('order_items')
+      .insert(orderItems);
+
+    if (itemsError) throw itemsError;
+  }
+
+  return getOrderById(newOrder.id) as Promise<OrderWithDetails>;
 }
 
 /**
@@ -80,7 +125,7 @@ export async function createOrder(order: OrderInsert): Promise<Order> {
 export async function updateOrder(
   orderId: string,
   updates: OrderUpdate
-): Promise<Order> {
+): Promise<OrderWithDetails> {
   const { data, error } = await supabase
     .from('orders')
     .update(updates)
@@ -89,13 +134,22 @@ export async function updateOrder(
     .single();
 
   if (error) throw error;
-  return data;
+  return getOrderById(data.id) as Promise<OrderWithDetails>;
 }
 
 /**
- * Delete an order
+ * Delete an order and its items
  */
 export async function deleteOrder(orderId: string): Promise<void> {
+  // Delete order items first (foreign key constraint)
+  const { error: itemsError } = await supabase
+    .from('order_items')
+    .delete()
+    .eq('order_id', orderId);
+
+  if (itemsError) throw itemsError;
+
+  // Then delete the order
   const { error } = await supabase
     .from('orders')
     .delete()
@@ -110,7 +164,7 @@ export async function deleteOrder(orderId: string): Promise<void> {
 export async function getOrdersByCompany(
   accountId: string,
   companyId: string
-): Promise<OrderWithCompany[]> {
+): Promise<OrderWithDetails[]> {
   const { data: orders, error } = await supabase
     .from('orders')
     .select(`
@@ -119,6 +173,12 @@ export async function getOrdersByCompany(
         id,
         name,
         domain
+      ),
+      items:order_items (
+        *,
+        product:products (
+          *
+        )
       )
     `)
     .eq('account_id', accountId)
@@ -126,7 +186,12 @@ export async function getOrdersByCompany(
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return orders as OrderWithCompany[];
+  
+  return orders.map((order) => ({
+    ...order,
+    items: order.items || [],
+    total: calculateOrderTotal(order.items || []),
+  })) as OrderWithDetails[];
 }
 
 /**
@@ -135,7 +200,7 @@ export async function getOrdersByCompany(
 export async function updateOrderStatus(
   orderId: string,
   status: OrderStatus
-): Promise<Order> {
+): Promise<OrderWithDetails> {
   const { data, error } = await supabase
     .from('orders')
     .update({ status })
@@ -144,5 +209,71 @@ export async function updateOrderStatus(
     .single();
 
   if (error) throw error;
-  return data;
+  return getOrderById(data.id) as Promise<OrderWithDetails>;
+}
+
+/**
+ * Add item to order
+ */
+export async function addOrderItem(
+  orderId: string,
+  item: Omit<OrderItemInsert, 'order_id'>
+): Promise<OrderItemWithProduct> {
+  const { data, error } = await supabase
+    .from('order_items')
+    .insert({ ...item, order_id: orderId })
+    .select(`
+      *,
+      product:products (
+        *
+      )
+    `)
+    .single();
+
+  if (error) throw error;
+  return data as OrderItemWithProduct;
+}
+
+/**
+ * Update order item
+ */
+export async function updateOrderItem(
+  itemId: string,
+  updates: Omit<OrderItemUpdate, 'order_id'>
+): Promise<OrderItemWithProduct> {
+  const { data, error } = await supabase
+    .from('order_items')
+    .update(updates)
+    .eq('id', itemId)
+    .select(`
+      *,
+      product:products (
+        *
+      )
+    `)
+    .single();
+
+  if (error) throw error;
+  return data as OrderItemWithProduct;
+}
+
+/**
+ * Remove item from order
+ */
+export async function removeOrderItem(itemId: string): Promise<void> {
+  const { error } = await supabase
+    .from('order_items')
+    .delete()
+    .eq('id', itemId);
+
+  if (error) throw error;
+}
+
+/**
+ * Calculate order total from items
+ */
+function calculateOrderTotal(items: OrderItemWithProduct[]): number {
+  return items.reduce((total, item) => {
+    return total + (item.product.price * item.quantity);
+  }, 0);
 } 

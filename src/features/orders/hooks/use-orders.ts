@@ -1,12 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useWorkspace } from '@/hooks/use-workspace';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Order,
-  OrderInsert,
+import type {
+  OrderFormData,
   OrderStatus,
-  OrderUpdate,
-  OrderWithCompany,
+  OrderWithDetails,
+} from '../types';
+import {
   createOrder,
   deleteOrder,
   getOrderById,
@@ -32,11 +32,16 @@ export const orderKeys = {
  */
 export function useOrders() {
   const { workspace } = useWorkspace();
+  const { toast } = useToast();
   
   return useQuery({
     queryKey: orderKeys.list(workspace?.id ?? ''),
     queryFn: () => getOrders(workspace?.id ?? ''),
     enabled: !!workspace?.id,
+    staleTime: 1000 * 60, // 1 minute
+    retry: 2,
+    refetchOnWindowFocus: true,
+    gcTime: 1000 * 60 * 5, // 5 minutes
   });
 }
 
@@ -44,10 +49,16 @@ export function useOrders() {
  * Hook to fetch a single order by ID
  */
 export function useOrder(orderId: string) {
+  const { toast } = useToast();
+
   return useQuery({
     queryKey: orderKeys.detail(orderId),
     queryFn: () => getOrderById(orderId),
     enabled: !!orderId,
+    staleTime: 1000 * 30, // 30 seconds
+    retry: 2,
+    refetchOnWindowFocus: true,
+    gcTime: 1000 * 60 * 5, // 5 minutes
   });
 }
 
@@ -56,11 +67,16 @@ export function useOrder(orderId: string) {
  */
 export function useCompanyOrders(companyId: string) {
   const { workspace } = useWorkspace();
+  const { toast } = useToast();
 
   return useQuery({
     queryKey: orderKeys.companyOrders(workspace?.id ?? '', companyId),
     queryFn: () => getOrdersByCompany(workspace?.id ?? '', companyId),
     enabled: !!workspace?.id && !!companyId,
+    staleTime: 1000 * 60, // 1 minute
+    retry: 2,
+    refetchOnWindowFocus: true,
+    gcTime: 1000 * 60 * 5, // 5 minutes
   });
 }
 
@@ -73,8 +89,19 @@ export function useCreateOrder() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: (newOrder: Omit<OrderInsert, 'account_id'>) =>
-      createOrder({ ...newOrder, account_id: workspace?.id }),
+    mutationFn: (data: OrderFormData) => {
+      if (!workspace?.id) {
+        throw new Error('No workspace selected');
+      }
+      
+      const orderData = {
+        account_id: workspace.id,
+        company_id: data.company_id,
+        status: data.status || 'pending'
+      };
+      
+      return createOrder(orderData, data.items);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: orderKeys.lists() });
       toast({
@@ -100,7 +127,7 @@ export function useUpdateOrder() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: ({ orderId, updates }: { orderId: string; updates: OrderUpdate }) =>
+    mutationFn: ({ orderId, updates }: { orderId: string; updates: OrderFormData }) =>
       updateOrder(orderId, updates),
     onSuccess: (_, { orderId }) => {
       queryClient.invalidateQueries({ queryKey: orderKeys.detail(orderId) });
@@ -156,7 +183,7 @@ export function useDeleteOrder() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: deleteOrder,
+    mutationFn: (orderId: string) => deleteOrder(orderId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: orderKeys.lists() });
       toast({
@@ -189,13 +216,13 @@ export function useOptimisticUpdateOrderStatus() {
       await queryClient.cancelQueries({ queryKey: orderKeys.detail(orderId) });
 
       // Snapshot the previous value
-      const previousOrder = queryClient.getQueryData<OrderWithCompany>(
+      const previousOrder = queryClient.getQueryData<OrderWithDetails>(
         orderKeys.detail(orderId)
       );
 
       // Optimistically update to the new value
       if (previousOrder) {
-        queryClient.setQueryData<OrderWithCompany>(
+        queryClient.setQueryData<OrderWithDetails>(
           orderKeys.detail(orderId),
           { ...previousOrder, status }
         );

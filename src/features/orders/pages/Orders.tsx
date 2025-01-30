@@ -13,17 +13,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { generateInitials, formatDate } from "@/lib/utils";
+import { generateInitials, formatDate, formatCurrency } from "@/lib/utils";
 import { useClipboard } from "@/hooks/use-clipboard";
 import { useOrders, useDeleteOrder, useUpdateOrderStatus } from "../hooks/use-orders";
 import {
-  OrderWithCompany,
+  OrderWithDetails,
   OrderStatus,
   ORDER_STATUS,
   ORDER_STATUS_CONFIG,
 } from "../types";
 
-const columns: ColumnDef<OrderWithCompany>[] = [
+const columns: ColumnDef<OrderWithDetails>[] = [
   {
     id: "select",
     header: ({ table }) => (
@@ -54,13 +54,12 @@ const columns: ColumnDef<OrderWithCompany>[] = [
       return (
         <div className="flex items-center gap-2">
           <span className="font-medium">#{row.getValue("order_number")}</span>
-          
         </div>
       );
     },
   },
   {
-    accessorKey: "company",
+    accessorKey: "company_id",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Company" />
     ),
@@ -80,6 +79,23 @@ const columns: ColumnDef<OrderWithCompany>[] = [
               <span className="text-xs text-muted-foreground">{company.domain}</span>
             )}
           </div>
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "items",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Items" />
+    ),
+    cell: ({ row }) => {
+      const items = row.original.items;
+      return (
+        <div className="flex flex-col">
+          <span className="text-sm font-medium">{items.length} items</span>
+          <span className="text-xs text-muted-foreground">
+            {formatCurrency(row.original.total)}
+          </span>
         </div>
       );
     },
@@ -158,7 +174,7 @@ const columns: ColumnDef<OrderWithCompany>[] = [
 
 export default function Orders() {
   const navigate = useNavigate();
-  const { data: orders, isLoading } = useOrders();
+  const { data: orders, isLoading, error } = useOrders();
 
   return (
     <div className="flex flex-col gap-6">
@@ -176,14 +192,22 @@ export default function Orders() {
         </Button>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={orders || []}
-        isLoading={isLoading}
-        filterColumn="company.name"
-        filterPlaceholder="Filter orders..."
-        onRowClick={(row) => navigate(`/orders/${row.id}`)}
-      />
+      {error ? (
+        <div className="rounded-lg border border-destructive p-4">
+          <p className="text-sm text-destructive">
+            Error loading orders: {error instanceof Error ? error.message : "Unknown error"}
+          </p>
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={orders || []}
+          isLoading={isLoading}
+          filterColumn="company_id"
+          filterPlaceholder="Filter by company..."
+          onRowClick={(row) => navigate(`/orders/${row.id}`)}
+        />
+      )}
     </div>
   );
 } 

@@ -13,10 +13,23 @@ export type Order = Database["public"]["Tables"]["orders"]["Row"];
 export type OrderInsert = Database["public"]["Tables"]["orders"]["Insert"];
 export type OrderUpdate = Database["public"]["Tables"]["orders"]["Update"];
 export type CustomerCompany = Database["public"]["Tables"]["customer_companies"]["Row"];
+export type OrderItem = Database["public"]["Tables"]["order_items"]["Row"];
+export type OrderItemInsert = Database["public"]["Tables"]["order_items"]["Insert"];
+export type OrderItemUpdate = Database["public"]["Tables"]["order_items"]["Update"];
+export type Product = Database["public"]["Tables"]["products"]["Row"];
 
 // Extended types
 export type OrderWithCompany = Order & {
   company: CustomerCompany | null;
+};
+
+export type OrderItemWithProduct = OrderItem & {
+  product: Product;
+};
+
+export type OrderWithDetails = OrderWithCompany & {
+  items: OrderItemWithProduct[];
+  total: number;
 };
 
 // Status types
@@ -56,16 +69,33 @@ export const ORDER_STATUS_CONFIG: Record<OrderStatus, StatusConfig<OrderStatus>>
 export interface OrderFormData {
   company_id: string;
   status?: OrderStatus;
+  items: Array<{
+    product_id: string;
+    quantity: number;
+  }>;
+}
+
+export interface OrderItemFormData {
+  product_id: string;
+  quantity: number;
 }
 
 // Component props types
 export interface OrderFormProps {
   initialData?: OrderUpdate;
   companies: SelectOption[];
+  products: SelectOption[];
 }
 
 export interface OrderDetailsProps {
-  order: OrderWithCompany;
+  order: OrderWithDetails;
+}
+
+export interface OrderItemsTableProps {
+  items: OrderItemWithProduct[];
+  onUpdateQuantity?: (itemId: string, quantity: number) => void;
+  onRemoveItem?: (itemId: string) => void;
+  isEditable?: boolean;
 }
 
 // Utility types
@@ -74,12 +104,18 @@ export interface CompanyOption {
   name: string;
 }
 
+export interface ProductOption {
+  id: string;
+  name: string;
+  price: number;
+}
+
 // Table types
-export type OrderTableState = TableState<OrderWithCompany>;
+export type OrderTableState = TableState<OrderWithDetails>;
 
 // API response types
-export type OrderResponse = ApiResponse<OrderWithCompany>;
-export type OrdersResponse = ApiListResponse<OrderWithCompany>;
+export type OrderResponse = ApiResponse<OrderWithDetails>;
+export type OrdersResponse = ApiListResponse<OrderWithDetails>;
 
 // Status update types
 export interface OrderStatusUpdate {
@@ -91,4 +127,20 @@ export interface OrderStatusUpdate {
 export interface OrderUpdateMutation {
   orderId: string;
   updates: OrderUpdate;
+}
+
+export interface OrderItemUpdateMutation {
+  orderId: string;
+  itemId: string;
+  updates: OrderItemUpdate;
+}
+
+export interface OrderItemCreateMutation {
+  orderId: string;
+  item: OrderItemInsert;
+}
+
+export interface OrderItemDeleteMutation {
+  orderId: string;
+  itemId: string;
 } 
