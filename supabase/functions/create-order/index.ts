@@ -9,7 +9,6 @@ import { HumanMessage, ToolMessage } from "@langchain/core/messages";
 import { z } from "zod";
 import { Annotation, MessagesAnnotation, END, START, StateGraph, Command } from "@langchain/langgraph";
 import { corsHeaders } from '../_shared/cors.ts';
-import { traceable } from "langsmith/traceable";
 
 // Initialize Supabase client
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
