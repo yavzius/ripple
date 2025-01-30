@@ -59,9 +59,9 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: SidebarProps) => {
     setIsCollapsed(!newPinState);
   };
 
-  const isActive = (path: string) => {
-    return location.pathname === path;
-  };
+  function isActive(path: string) {
+    return location.pathname.startsWith(path);
+  }
 
   const navItems = [
     {
