@@ -4,11 +4,11 @@ import { cn } from '@/lib/utils';
 import { useWorkspace } from '@/hooks/use-workspace';
 import { supabase } from '@/integrations/supabase/client';
 
-interface MagicalCircleProps {
+interface CommandCircleProps {
   className?: string;
 }
 
-export function MagicalCircle({ className }: MagicalCircleProps) {
+export function CommandCircle({ className }: CommandCircleProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
