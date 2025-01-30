@@ -125,13 +125,13 @@ const searchDocuments = async (embedding: number[], searchText: string): Promise
     }
 
     // Combine and deduplicate results
-    const vectorResults: SearchResult[] = (vectorMatches || []).map(match => ({
+    const vectorResults: SearchResult[] = (vectorMatches || []).map((match: any) => ({
       ...match,
       source: 'vector',
       score: match.similarity
     }));
 
-    const textResults: SearchResult[] = (textMatches || []).map(match => ({
+    const textResults: SearchResult[] = (textMatches || []).map((match: any) => ({
       ...match,
       similarity: 0.5,
       source: 'text',
@@ -266,7 +266,7 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error('Error processing request:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });

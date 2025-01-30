@@ -1,22 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '../../database.types';
 
-// Types
 type Tables = Database['public']['Tables'];
-type User = Tables['users']['Row'];
 type Ticket = Tables['tickets']['Row'];
-type Message = Tables['messages']['Row'];
-type Document = Tables['documents']['Row'];
-
-// Remove duplicate types
-type UserRole = 'admin' | 'agent' | 'customer';
-
-interface UserBasicInfo {
-  id: string;
-  email: string | null;
-  first_name: string | null;
-  last_name: string | null;
-}
 
 export type TicketWithRelations = Database['public']['Tables']['tickets']['Row'] & {
   conversation: {

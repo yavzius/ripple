@@ -1,6 +1,4 @@
-// @deno-types="npm:@types/node"
 
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "@supabase/supabase-js";
 import { ChatOpenAI } from "@langchain/openai";
 import { tool } from "@langchain/core/tools";
@@ -134,7 +132,7 @@ const graph = new StateGraph(GraphAnnotation)
 const app = graph.compile();
 
 // Main serve function
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { 
@@ -181,7 +179,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message 
+        error: (error as Error).message 
       }),
       { 
         status: 500, 
