@@ -45,12 +45,28 @@ const columns: ColumnDef<OrderWithCompany>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "id",
+    accessorKey: "order_number",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Order ID" />
+      <DataTableColumnHeader column={column} title="Order #" />
     ),
     cell: ({ row }) => {
-      return <span className="font-mono text-xs">{row.getValue("id")}</span>;
+      const { copyToClipboard } = useClipboard();
+      return (
+        <div className="flex items-center gap-2">
+          <span className="font-medium">#{row.getValue("order_number")}</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-4 w-4"
+            onClick={(e) => {
+              e.stopPropagation();
+              copyToClipboard(row.getValue("order_number").toString());
+            }}
+          >
+            <MoreHorizontal className="h-3 w-3" />
+          </Button>
+        </div>
+      );
     },
   },
   {

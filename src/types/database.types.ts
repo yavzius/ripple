@@ -369,6 +369,7 @@ export type Database = {
           company_id: string | null
           created_at: string
           id: string
+          order_number: number
           status: string | null
         }
         Insert: {
@@ -376,6 +377,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           id?: string
+          order_number?: number
           status?: string | null
         }
         Update: {
@@ -383,6 +385,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           id?: string
+          order_number?: number
           status?: string | null
         }
         Relationships: [

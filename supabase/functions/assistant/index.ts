@@ -1,4 +1,3 @@
-
 import { createClient } from "@supabase/supabase-js";
 import { ChatOpenAI } from "@langchain/openai";
 import { tool } from "@langchain/core/tools";
@@ -82,7 +81,7 @@ const createOrder = tool(async (input, config) => {
       messages: [
         new ToolMessage({
           tool_call_id: config.toolCall.id,
-          content: `Order created successfully with ID: ${order.id}. TERMINATE.`
+          content: `Order #${order.order_number} created successfully (ID: ${order.id}). TERMINATE.`
         })
       ]
     },
@@ -172,7 +171,8 @@ Deno.serve(async (req) => {
         success: true,
         orderId: result.orderId,
         customerCompanyId: result.customerCompanyId,
-        message: result.messages[result.messages.length - 1].content
+        message: result.messages[result.messages.length - 1].content,
+        orderNumber: String(result.messages[result.messages.length - 1].content).match(/#(\d+)/)?.[1],
       }),
       { 
         status: 200,
