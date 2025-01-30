@@ -1,10 +1,8 @@
 import { useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { cn } from '@/lib/utils';
-//get workspace
 import { useWorkspace } from '@/hooks/use-workspace';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
 
 interface MagicalCircleProps {
   className?: string;
@@ -15,10 +13,8 @@ export function MagicalCircle({ className }: MagicalCircleProps) {
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { workspace } = useWorkspace();
-  const { toast } = useToast();
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
 
-  // call edge function
   const createOrder = async (prompt: string) => {
     if (!prompt.trim()) {
       setAlertMessage("Please enter a prompt");
@@ -26,7 +22,7 @@ export function MagicalCircle({ className }: MagicalCircleProps) {
     }
 
     setIsLoading(true);
-    setAlertMessage(null); // Clear any previous alert messages
+    setAlertMessage(null);
     try {
       const { data, error } = await supabase.functions.invoke('create-order', {
         body: { prompt, accountId: workspace.id }
@@ -39,8 +35,7 @@ export function MagicalCircle({ className }: MagicalCircleProps) {
       if (data.success) {
         setAlertMessage(data.message);
       }
-      
-      // setIsOpen(false);
+
       setPrompt('');
     } catch (error) {
       console.error('Error creating order:', error);
@@ -99,7 +94,7 @@ export function MagicalCircle({ className }: MagicalCircleProps) {
                 disabled={isLoading}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault(); // Prevents adding a new line
+                    e.preventDefault();
                     createOrder(prompt);
                   }
                 }}
