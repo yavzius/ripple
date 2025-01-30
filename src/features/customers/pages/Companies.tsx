@@ -16,6 +16,7 @@ import {
 import { useWorkspace } from "@/hooks/use-workspace";
 import { useToast } from "@/components/ui/use-toast";
 import { CompanyWithCustomers, getCompanies } from "@/lib/actions";
+import { PageLayout } from "@/components/layout/PageLayout";
 
 const columns: ColumnDef<CompanyWithCustomers>[] = [
   {
@@ -156,21 +157,13 @@ export default function Companies() {
   }, [workspace?.id, toast]);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h2 className="text-2xl font-semibold tracking-tight">Companies</h2>
-          <p className="text-sm text-muted-foreground">
-            Manage your customer companies and their customers
-          </p>
-        </div>
-        <Button size="sm" asChild>
-          <Link to="/companies/new">
-            <Plus className="mr-2 h-4 w-4" /> Add Company
-          </Link>
-        </Button>
-      </div>
-
+    <PageLayout
+      title="Companies"
+      primaryAction={{
+        label: "Add Company",
+        href: "/companies/new"
+      }}
+    >
       <DataTable
         columns={columns}
         data={companies}
@@ -179,6 +172,6 @@ export default function Companies() {
         filterPlaceholder="Filter companies..."
         onRowClick={(row) => navigate(`/companies/${row.id}`)}
       />
-    </div>
+    </PageLayout>
   );
 } 

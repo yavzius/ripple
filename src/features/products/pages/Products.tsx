@@ -22,6 +22,7 @@ import {
   PRODUCT_STATUS,
   PRODUCT_STATUS_CONFIG,
 } from "../types";
+import { PageLayout } from "@/components/layout/PageLayout";
 
 const columns: ColumnDef<ProductWithCompany>[] = [
   {
@@ -143,21 +144,13 @@ export default function Products() {
   const { data: products, isLoading } = useProducts();
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h2 className="text-2xl font-semibold tracking-tight">Products</h2>
-          <p className="text-sm text-muted-foreground">
-            Manage and track your product catalog
-          </p>
-        </div>
-        <Button asChild>
-          <Link to="/products/new">
-            <Plus className="mr-2 h-4 w-4" /> New Product
-          </Link>
-        </Button>
-      </div>
-
+    <PageLayout
+      title="Products"
+      primaryAction={{
+        label: "New Product",
+        href: "/products/new"
+      }}
+    >
       <DataTable
         columns={columns}
         data={products || []}
@@ -166,6 +159,6 @@ export default function Products() {
         filterPlaceholder="Filter products..."
         onRowClick={(row) => navigate(`/products/${row.id}`)}
       />
-    </div>
+    </PageLayout>
   );
 } 

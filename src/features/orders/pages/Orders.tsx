@@ -22,6 +22,7 @@ import {
   ORDER_STATUS,
   ORDER_STATUS_CONFIG,
 } from "../types";
+import { PageLayout } from "@/components/layout/PageLayout";
 
 const columns: ColumnDef<OrderWithDetails>[] = [
   {
@@ -177,21 +178,13 @@ export default function Orders() {
   const { data: orders, isLoading, error } = useOrders();
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h2 className="text-2xl font-semibold tracking-tight">Orders</h2>
-          <p className="text-sm text-muted-foreground">
-            Manage and track your customer orders
-          </p>
-        </div>
-        <Button asChild>
-          <Link to="/orders/new">
-            <Plus className="mr-2 h-4 w-4" /> New Order
-          </Link>
-        </Button>
-      </div>
-
+    <PageLayout
+      title="Orders"
+      primaryAction={{
+        label: "New Order",
+        href: "/orders/new"
+      }}
+    >
       {error ? (
         <div className="rounded-lg border border-destructive p-4">
           <p className="text-sm text-destructive">
@@ -208,6 +201,6 @@ export default function Orders() {
           onRowClick={(row) => navigate(`/orders/${row.id}`)}
         />
       )}
-    </div>
+    </PageLayout>
   );
 } 

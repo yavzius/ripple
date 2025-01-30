@@ -1,44 +1,31 @@
-import { Link, useNavigate } from "react-router-dom";
-import { Pencil, ArrowLeft } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { Product, PRODUCT_STATUS_CONFIG } from "../types";
+import { PageLayout } from "@/components/layout/PageLayout";
 
 interface ProductDetailsProps {
   product: Product;
 }
 
 export function ProductDetails({ product }: ProductDetailsProps) {
-  const navigate = useNavigate();
   const statusConfig = PRODUCT_STATUS_CONFIG[product.status];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/products")}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h2 className="text-2xl font-semibold tracking-tight">Product Details</h2>
-            <p className="text-sm text-muted-foreground">
-              View and manage product information
-            </p>
-          </div>
-        </div>
+    <PageLayout
+      title={product.name}
+      backTo="/products"
+      actions={
         <Button asChild>
           <Link to={`/products/${product.id}/edit`}>
             <Pencil className="mr-2 h-4 w-4" /> Edit Product
           </Link>
         </Button>
-      </div>
-
+      }
+    >
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -81,6 +68,6 @@ export function ProductDetails({ product }: ProductDetailsProps) {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PageLayout>
   );
 } 

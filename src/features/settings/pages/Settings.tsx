@@ -13,6 +13,7 @@ import { supabase } from "@/lib/supabase";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/features/auth/hooks/use-auth";
+import { PageLayout } from "@/components/layout/PageLayout";
 
 interface UserFormData {
   email: string;
@@ -365,19 +366,19 @@ export default function Settings() {
     }
   };
 
-  return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Settings</h1>
-          <p className="text-muted-foreground">Manage your system settings and preferences</p>
-        </div>
-        <div className="text-right">
-          <p className="text-sm text-muted-foreground">Logged in as</p>
-          <p className="font-medium">{currentUserEmail}</p>
-        </div>
-      </div>
+  const userInfo = (
+    <div className="text-right">
+      <p className="text-sm text-muted-foreground">Logged in as</p>
+      <p className="font-medium">{currentUserEmail}</p>
+    </div>
+  );
 
+  return (
+    <PageLayout
+      title="Settings"
+      description="Manage your system settings and preferences"
+      actions={userInfo}
+    >
       <div className="grid gap-6">
         {/* Demo Data Card */}
         <Card>
@@ -655,6 +656,6 @@ export default function Settings() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageLayout>
   );
 }
