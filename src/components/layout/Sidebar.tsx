@@ -9,7 +9,8 @@ import {
   Users,
   CircleDotDashed,
   Pin,
-  MessageSquare
+  MessageSquare,
+  ShoppingCart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Dispatch, SetStateAction, useState, useEffect } from "react";
@@ -73,6 +74,11 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: SidebarProps) => {
       title: "Companies",
       href: "/companies",
       icon: Users,
+    },
+    {
+      title: "Orders",
+      href: "/orders",
+      icon: ShoppingCart,
     },
     {
       title: "Knowledge Base",

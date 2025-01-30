@@ -5,25 +5,29 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Session } from '@supabase/supabase-js';
 import { useWorkspace } from "@/hooks/use-workspace";
-import TicketsPage from "./features/tickets/pages/Tickets";
-import NewTicket from "./features/tickets/pages/NewTicket";
-import TicketDetail from "./features/tickets/pages/TicketDetail";
-import KnowledgeBase from "./features/knowledge-base/pages/KnowledgeBase";
-import DocumentDetail from "./features/knowledge-base/pages/DocumentDetail";
-import Settings from "./features/settings/pages/Settings";
-import CustomerPortal from "./features/customer-dashboard/pages/CustomerPortal";
-import WorkspaceLayout from "./components/layout/WorkspaceLayout";
-import Auth from "./features/auth/pages/Auth";
-import SignUp from "./features/auth/pages/SignUp";
+import TicketsPage from "@/features/tickets/pages/Tickets";
+import NewTicket from "@/features/tickets/pages/NewTicket";
+import TicketDetail from "@/features/tickets/pages/TicketDetail";
+import KnowledgeBase from "@/features/knowledge-base/pages/KnowledgeBase";
+import DocumentDetail from "@/features/knowledge-base/pages/DocumentDetail";
+import Settings from "@/features/settings/pages/Settings";
+import CustomerPortal from "@/features/customer-dashboard/pages/CustomerPortal";
+import WorkspaceLayout from "@/components/layout/WorkspaceLayout";
+import Auth from "@/features/auth/pages/Auth";
+import SignUp from "@/features/auth/pages/SignUp";
 import { Skeleton } from "@/components/ui/skeleton";
-import NewCustomerCompany from "./features/customers/pages/NewCustomerCompany";
-import Companies from "./features/customers/pages/Companies";
-import CompanyDetail from "./features/customers/pages/CompanyDetail";
-import NewContact from "./features/customers/pages/NewContact";
-import Inbox from "./features/inbox/pages/Inbox";
-import Landing from "./pages/Landing";
-import BrandChat from "./features/customer-dashboard/pages/BrandChat";
-import ImportPage from "./features/knowledge-base/pages/ImportPage";
+import NewCustomerCompany from "@/features/customers/pages/NewCustomerCompany";
+import Companies from "@/features/customers/pages/Companies";
+import CompanyDetail from "@/features/customers/pages/CompanyDetail";
+import NewContact from "@/features/customers/pages/NewContact";
+import Inbox from "@/features/inbox/pages/Inbox";
+import Landing from "@/pages/Landing";
+import BrandChat from "@/features/customer-dashboard/pages/BrandChat";
+import ImportPage from "@/features/knowledge-base/pages/ImportPage";
+import Orders from "@/features/orders/pages/Orders";
+import CreateOrder from "@/features/orders/pages/CreateOrder";
+import EditOrder from "@/features/orders/pages/EditOrder";
+import OrderView from "@/features/orders/pages/OrderView";
 
 const InitialLoadingState = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -100,6 +104,10 @@ function App() {
               <Route path="/companies/new" element={<NewCustomerCompany />} />
               <Route path="/companies/:id" element={<CompanyDetail />} />
               <Route path="/companies/:id/contacts/new" element={<NewContact />} />
+              <Route path="/orders" element={<Orders />} />
+              <Route path="/orders/new" element={<CreateOrder />} />
+              <Route path="/orders/:orderId" element={<OrderView />} />
+              <Route path="/orders/:orderId/edit" element={<EditOrder />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           ) : (
