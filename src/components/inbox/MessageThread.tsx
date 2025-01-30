@@ -4,10 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Send, Building2, User, Loader2, CheckCircle2, Pencil, Trash2, Paperclip, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { analyzeCustomerSentiment as analyzeSentiment, generateCustomerSupportResponse } from "@/lib/langsmith-service";
 import { updateConversationStatus } from "@/lib/actions";
 import { toast } from "sonner";
 import {
@@ -550,7 +549,7 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
             <Skeleton className="h-9 w-24" />
           </div>
         </CardHeader>
-        <CardContent className="flex flex-col h-[calc(100%-8rem)]">
+        <CardContent className="flex flex-col h-[calc(100%-2rem)]">
           <ScrollArea className="flex-1 pr-4">
             <div className="space-y-4 py-4">
               {[1, 2, 3].map((i) => (
@@ -638,7 +637,7 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
           )}
         </div>
       </CardHeader>
-      <CardContent className="flex flex-col h-[calc(100%-8rem)]">
+      <CardContent className="flex flex-col h-[calc(100%-16rem)]">
         <ScrollArea className="flex-1 pr-4">
           <div className="space-y-4 py-4">
             {messages.map((message) => (

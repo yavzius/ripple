@@ -25,7 +25,7 @@ export default function Inbox() {
 
   if (loading) {
     return (
-      <div className="h-screen flex">
+      <div className="flex">
         <div className="w-[400px] border-r flex flex-col bg-white">
           <div className="p-3 border-b">
             <Skeleton className="h-5 w-24" />
@@ -60,7 +60,7 @@ export default function Inbox() {
   }
 
   return (
-    <div className="h-screen flex">
+    <div className="h-[calc(100vh-4rem)] flex">
       <div className="w-[400px] border-r flex flex-col bg-white">
         <div className="p-3 border-b flex items-center justify-between">
           <div className="flex items-center gap-2">
