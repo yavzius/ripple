@@ -2,34 +2,28 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { Session } from '@supabase/supabase-js';
 import { useWorkspace } from "@/hooks/use-workspace";
-import Index from "./pages/Index";
-import TicketsPage from "./pages/Tickets";
-import NewTicket from "./pages/NewTicket";
-import TicketDetail from "./pages/TicketDetail";
-import KnowledgeBase from "./pages/KnowledgeBase";
-import DocumentDetail from "./pages/DocumentDetail";
-import Training from "./pages/Training";
-import TrainingCardDetail from "./pages/TrainingCardDetail";
-import TrainingSession from "./pages/TrainingSession";
-import Analytics from "./pages/Analytics";
-import Updates from "./pages/Updates";
-import Settings from "./pages/Settings";
-import CustomerPortal from "./pages/CustomerPortal";
+import TicketsPage from "./features/tickets/pages/Tickets";
+import NewTicket from "./features/tickets/pages/NewTicket";
+import TicketDetail from "./features/tickets/pages/TicketDetail";
+import KnowledgeBase from "./features/knowledge-base/pages/KnowledgeBase";
+import DocumentDetail from "./features/knowledge-base/pages/DocumentDetail";
+import Settings from "./features/settings/pages/Settings";
+import CustomerPortal from "./features/customer-dashboard/pages/CustomerPortal";
 import WorkspaceLayout from "./components/layout/WorkspaceLayout";
-import Auth from "./pages/Auth";
-import SignUp from "./pages/SignUp";
+import Auth from "./features/auth/pages/Auth";
+import SignUp from "./features/auth/pages/SignUp";
 import { Skeleton } from "@/components/ui/skeleton";
-import NewCustomerCompany from "./pages/NewCustomerCompany";
-import Companies from "./pages/Companies";
-import CompanyDetail from "./pages/CompanyDetail";
-import NewContact from "./pages/NewContact";
-import Inbox from "./pages/Inbox";
+import NewCustomerCompany from "./features/customers/pages/NewCustomerCompany";
+import Companies from "./features/customers/pages/Companies";
+import CompanyDetail from "./features/customers/pages/CompanyDetail";
+import NewContact from "./features/customers/pages/NewContact";
+import Inbox from "./features/inbox/pages/Inbox";
 import Landing from "./pages/Landing";
-import BrandChat from "./pages/public/BrandChat";
-import ImportPage from "./pages/knowledge-base/ImportPage";
+import BrandChat from "./features/customer-dashboard/pages/BrandChat";
+import ImportPage from "./features/knowledge-base/pages/ImportPage";
 
 const InitialLoadingState = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -93,7 +87,6 @@ function App() {
           } />
           {isAuthenticated ? (
             <Route element={<WorkspaceLayout />}>
-              <Route path="/dashboard" element={<Index />} />
               <Route path="/inbox" element={<Inbox />} />
               <Route path="/inbox/:conversationId" element={<Inbox />} />
               <Route path="/tickets" element={<TicketsPage />} />
@@ -102,11 +95,6 @@ function App() {
               <Route path="/knowledge-base" element={<KnowledgeBase />} />
               <Route path="/knowledge-base/import" element={<ImportPage />} />
               <Route path="/knowledge-base/:id" element={<DocumentDetail />} />
-              <Route path="/training" element={<Training />} />
-              <Route path="/training/:id" element={<TrainingCardDetail />} />
-              <Route path="/training/session/:id" element={<TrainingSession />} />
-              <Route path="/analytics" element={<Analytics />} />
-              <Route path="/updates" element={<Updates />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/companies" element={<Companies />} />
               <Route path="/companies/new" element={<NewCustomerCompany />} />

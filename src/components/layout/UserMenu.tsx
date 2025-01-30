@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/features/auth/hooks/use-auth";
 import { LogOut, Settings, User, ChevronUp, Plus, Building } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useWorkspace } from "@/hooks/use-workspace";

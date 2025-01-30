@@ -5,7 +5,7 @@ import {
   Sparkles, Bot, Store, Zap, ShieldCheck, Boxes
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 
 export default function Landing() {
   const navigate = useNavigate();

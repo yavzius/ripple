@@ -1,6 +1,5 @@
 import { ReactNode, useState } from "react";
 import { Sidebar } from "./Sidebar";
-import { Header } from "./Header";
 import { CommandCircle } from "./CommandCircle";
 
 interface DashboardLayoutProps {
