@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { ArrowLeft } from "lucide-react";
+import { PageLayout } from "@/components/layout/PageLayout";
 
 const formSchema = z.object({
   name: z.string().min(2, "Company name must be at least 2 characters"),
@@ -84,24 +84,12 @@ export default function NewCustomerCompany() {
   };
 
   return (
-    <div className="container max-w-2xl py-8">
-      <Button
-        variant="ghost"
-        className="mb-4"
-        onClick={() => navigate("/customers")}
-      >
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Customers
-      </Button>
-
+    <PageLayout
+      title="New Customer Company"
+      backTo="/companies"
+    >
       <Card>
-        <CardHeader>
-          <CardTitle>New Customer Company</CardTitle>
-          <CardDescription>
-            Create a new customer company and set up their communication channels.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
@@ -147,6 +135,6 @@ export default function NewCustomerCompany() {
           </Form>
         </CardContent>
       </Card>
-    </div>
+    </PageLayout>
   );
 } 

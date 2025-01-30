@@ -15,7 +15,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { PageLayout } from "@/components/layout/PageLayout";
 
 const formSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -98,12 +99,12 @@ export default function NewContact() {
   };
 
   return (
-    <div className="container py-8">
+    <PageLayout
+      title="Add New Contact"
+      backTo={`/companies/${companyId}`}
+    >
       <Card>
-        <CardHeader>
-          <CardTitle>Add New Contact</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
@@ -178,6 +179,6 @@ export default function NewContact() {
           </Form>
         </CardContent>
       </Card>
-    </div>
+    </PageLayout>
   );
 } 

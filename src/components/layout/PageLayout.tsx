@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageTitle } from "./PageTitle";
 import { Button } from "@/components/ui/button";
+import type { ButtonProps } from "@/components/ui/button";
 
 interface PageLayoutProps {
   title: string;
@@ -12,6 +13,7 @@ interface PageLayoutProps {
     label: string;
     href: string;
     icon?: ReactNode;
+    variant?: ButtonProps["variant"];
   };
   actions?: ReactNode;
   children: ReactNode;
@@ -39,7 +41,11 @@ export function PageLayout({
         />
         <div className="flex items-center gap-2 shrink-0">
           {primaryAction && (
-            <Button asChild size="sm">
+            <Button 
+              asChild 
+              size="sm"
+              variant={primaryAction.variant}
+            >
               <Link to={primaryAction.href}>
                 {primaryAction.icon || <Plus className="mr-2 h-4 w-4" />}
                 {primaryAction.label}

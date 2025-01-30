@@ -60,41 +60,6 @@ export function OrderDetails({ order }: OrderDetailsProps) {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate("/orders")}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <CardTitle className="text-2xl font-bold">
-              Order #{order.order_number}
-            </CardTitle>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => navigate(`/orders/${order.id}/edit`)}
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
-            <ConfirmDeleteDialog
-              trigger={
-                <Button variant="outline" size="icon">
-                  <Trash className="h-4 w-4" />
-                </Button>
-              }
-              description="This action cannot be undone. This will permanently delete the order and all its items."
-              onConfirm={() => {
-                deleteOrder(order.id);
-                navigate("/orders");
-              }}
-            />
-          </div>
-        </CardHeader>
         <CardContent className="pt-6">
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-1">

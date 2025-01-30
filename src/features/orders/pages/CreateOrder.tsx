@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,6 +10,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useWorkspaceCompanies, useWorkspaceProducts } from "@/hooks/use-workspace-data";
 import { OrderForm } from "../components/OrderForm";
+import { PageLayout } from "@/components/layout/PageLayout";
 
 export default function CreateOrder() {
   const navigate = useNavigate();
@@ -30,47 +30,28 @@ export default function CreateOrder() {
 
   if (error) {
     return (
-      <div className="container max-w-3xl py-8">
-        <Button
-          variant="ghost"
-          className="mb-4"
-          onClick={() => navigate("/orders")}
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Orders
-        </Button>
-
+      <PageLayout
+        title="Error"
+        backTo="/orders"
+      >
         <Card>
-          <CardHeader>
-            <CardTitle>Error</CardTitle>
-            <CardDescription>
+          <CardContent className="pt-6">
+            <p className="text-muted-foreground">
               {error instanceof Error ? error.message : "Failed to load required data"}
-            </CardDescription>
-          </CardHeader>
+            </p>
+          </CardContent>
         </Card>
-      </div>
+      </PageLayout>
     );
   }
 
   return (
-    <div className="container max-w-3xl py-8">
-      <Button
-        variant="ghost"
-        className="mb-4"
-        onClick={() => navigate("/orders")}
-      >
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Orders
-      </Button>
-
+    <PageLayout
+      title="New Order"
+      backTo="/orders"
+    >
       <Card>
-        <CardHeader>
-          <CardTitle>New Order</CardTitle>
-          <CardDescription>
-            Create a new order by selecting a company and adding products.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {isLoading ? (
             <div className="space-y-6">
               <div className="space-y-2">
@@ -97,6 +78,6 @@ export default function CreateOrder() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageLayout>
   );
 } 

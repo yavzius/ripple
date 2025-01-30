@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { useToast } from "@/components/ui/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import type { Database } from "database.types";
+import type { Database } from "@/types/database.types";
 import {
   Card,
   CardContent,
@@ -24,10 +24,20 @@ import { ChevronRight, Plus, MessageCircle } from "lucide-react";
 import { getCompanyWithCustomers } from "@/lib/actions";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { PageLayout } from "@/components/layout/PageLayout";
 
 type Tables<T extends keyof Database["public"]["Tables"]> = Database["public"]["Tables"][T]["Row"];
-type CustomerCompany = Tables<"customer_companies">;
-type Customer = Tables<"customers">;
+type CustomerCompany = Tables<"customer_companies"> & {
+  name: string;
+  domain: string;
+  created_at: string;
+  updated_at: string;
+};
+type Customer = Tables<"customers"> & {
+  first_name: string;
+  last_name: string;
+  id: string;
+};
 type Conversation = Tables<"conversations">;
 type Message = Tables<"messages">;
 
@@ -82,212 +92,204 @@ export default function CompanyDetail() {
 
   if (isLoading) {
     return (
-      <div className="container py-8">
+      <PageLayout
+        title="Loading..."
+        backTo="/companies"
+      >
         <div className="space-y-4">
           <div className="h-8 w-48 bg-muted animate-pulse rounded" />
           <div className="h-96 bg-muted animate-pulse rounded-lg" />
         </div>
-      </div>
+      </PageLayout>
     );
   }
 
   if (!company) {
     return (
-      <div className="container py-8">
+      <PageLayout
+        title="Company Not Found"
+        backTo="/companies"
+      >
         <div className="text-center py-12 text-muted-foreground">
           Company not found.
         </div>
-      </div>
+      </PageLayout>
     );
   }
 
   return (
-    <div className="container mx-auto p-4 space-y-6">
-      <div>
-        <div className="flex items-center gap-1 mb-4">
-          <Link to="/companies" className="text-md text-primary font-medium hover:text-primary/80 inline-flex items-center gap-1">
-            Companies
-          </Link>
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          <span className="text-muted-foreground">
-            {company.customers?.length || 0} {company.customers?.length === 1 ? 'contact' : 'contacts'}
-          </span>
-        </div>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">{company.name}</h1>
-            <div className="mt-2 text-muted-foreground">
-              Created {new Date(company.created_at || '').toLocaleDateString()}
-            </div>
-          </div>
-          <Button onClick={() => navigate(`/companies/${id}/customers/new`)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Contact
-          </Button>
-        </div>
-      </div>
+    <PageLayout
+      title={company.name}
+      backTo="/companies"
+      primaryAction={{
+        label: "Add Contact",
+        href: `/companies/${id}/customers/new`,
+        icon: <Plus className="h-4 w-4 mr-2" />
+      }}
+    >
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Company Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <div className="text-sm font-medium text-muted-foreground">Domain</div>
+                <div>{company.domain || "-"}</div>
+              </div>
+              <div>
+                <div className="text-sm font-medium text-muted-foreground">Created</div>
+                <div>{new Date(company.created_at || '').toLocaleDateString()}</div>
+              </div>
+              <div>
+                <div className="text-sm font-medium text-muted-foreground">Last Updated</div>
+                <div>{new Date(company.updated_at || '').toLocaleDateString()}</div>
+              </div>
+            </CardContent>
+          </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Statistics</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <div className="text-2xl font-bold">{company.customers?.length || 0}</div>
+                <div className="text-sm text-muted-foreground">Total Contacts</div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-2xl font-bold">{totalConversations}</div>
+                <div className="text-sm text-muted-foreground">Total Conversations</div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-2xl font-bold">{activeConversations}</div>
+                <div className="text-sm text-muted-foreground">Active Conversations</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         <Card>
           <CardHeader>
-            <CardTitle>Company Details</CardTitle>
+            <CardTitle>Contacts</CardTitle>
+            <CardDescription>Manage company contacts and their information</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">Domain</div>
-              <div>{company.domain || "-"}</div>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">Created</div>
-              <div>{new Date(company.created_at || '').toLocaleDateString()}</div>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">Last Updated</div>
-              <div>{new Date(company.updated_at || '').toLocaleDateString()}</div>
-            </div>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Conversations</TableHead>
+                  <TableHead>Joined</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {company.customers?.map((customer) => (
+                  <TableRow key={customer.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback>
+                            {`${customer.first_name?.[0] || ""}${customer.last_name?.[0] || ""}`}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          {customer.first_name} {customer.last_name}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{customer.email}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        {customer.conversations?.length || 0}
+                        {customer.conversations?.some(c => c.status === 'open') && (
+                          <Badge variant="secondary" className={statusColors.open}>
+                            {customer.conversations?.filter(c => c.status === 'open').length} Active
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {new Date(customer.created_at || "").toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate(`/inbox/${customer.conversations?.[0]?.id || 'new'}?customer=${customer.id}`)}
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Statistics</CardTitle>
+            <CardTitle>Recent Conversations</CardTitle>
+            <CardDescription>View and manage customer conversations</CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <div className="text-2xl font-bold">{company.customers?.length || 0}</div>
-              <div className="text-sm text-muted-foreground">Total Contacts</div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-2xl font-bold">{totalConversations}</div>
-              <div className="text-sm text-muted-foreground">Total Conversations</div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-2xl font-bold">{activeConversations}</div>
-              <div className="text-sm text-muted-foreground">Active Conversations</div>
-            </div>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Last Message</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead>Resolved</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {company.customers?.flatMap(customer => 
+                  customer.conversations?.map(conversation => ({
+                    ...conversation,
+                    customer
+                  })) || []
+                )
+                .sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime())
+                .map(conversation => (
+                  <TableRow key={conversation.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/inbox/${conversation.id}`)}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback>
+                            {`${conversation.customer.first_name?.[0] || ""}${conversation.customer.last_name?.[0] || ""}`}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          {conversation.customer.first_name} {conversation.customer.last_name}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={cn(statusColors[conversation.status as keyof typeof statusColors])}>
+                        {conversation.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {conversation.messages?.[conversation.messages.length - 1]?.content || '-'}
+                    </TableCell>
+                    <TableCell>
+                      {new Date(conversation.created_at || '').toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      {conversation.resolved_at ? new Date(conversation.resolved_at).toLocaleDateString() : '-'}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Contacts</CardTitle>
-          <CardDescription>Manage company contacts and their information</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Conversations</TableHead>
-                <TableHead>Joined</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {company.customers?.map((customer) => (
-                <TableRow key={customer.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback>
-                          {`${customer.first_name?.[0] || ""}${customer.last_name?.[0] || ""}`}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        {customer.first_name} {customer.last_name}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{customer.email}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      {customer.conversations?.length || 0}
-                      {customer.conversations?.some(c => c.status === 'open') && (
-                        <Badge variant="secondary" className={statusColors.open}>
-                          {customer.conversations?.filter(c => c.status === 'open').length} Active
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {new Date(customer.created_at || "").toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigate(`/inbox/${customer.conversations?.[0]?.id || 'new'}?customer=${customer.id}`)}
-                    >
-                      <MessageCircle className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Conversations</CardTitle>
-          <CardDescription>View and manage customer conversations</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Customer</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Last Message</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Resolved</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {company.customers?.flatMap(customer => 
-                customer.conversations?.map(conversation => ({
-                  ...conversation,
-                  customer
-                })) || []
-              )
-              .sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime())
-              .map(conversation => (
-                <TableRow key={conversation.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/inbox/${conversation.id}`)}>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback>
-                          {`${conversation.customer.first_name?.[0] || ""}${conversation.customer.last_name?.[0] || ""}`}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        {conversation.customer.first_name} {conversation.customer.last_name}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={cn(statusColors[conversation.status as keyof typeof statusColors])}>
-                      {conversation.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {conversation.messages?.[conversation.messages.length - 1]?.content || '-'}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(conversation.created_at || '').toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    {conversation.resolved_at ? new Date(conversation.resolved_at).toLocaleDateString() : '-'}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
+    </PageLayout>
   );
 } 

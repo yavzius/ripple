@@ -63,17 +63,15 @@ export default function Inbox() {
     );
   }
 
-  const actions = (
-    <Button size="sm" variant="outline">
-      <Plus className="h-4 w-4" />
-    </Button>
-  );
-
   return (
     <PageLayout
       title="Inbox"
-      description={conversationCount > 0 ? `${conversationCount} conversations` : undefined}
-      actions={actions}
+      primaryAction={{
+        label: "",
+        href: "/inbox/new",
+        icon: <Plus className="h-4 w-4" />,
+        variant: "outline"
+      }}
     >
       <div className="-mx-6 -mb-6 h-[calc(100vh-10rem)] bg-white">
         <div className="h-full flex">
