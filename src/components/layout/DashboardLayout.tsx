@@ -1,6 +1,7 @@
 import { ReactNode, useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
+import { MagicalCircle } from "../order/MagicalCircle";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -19,6 +20,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           <div className="content-area">{children}</div>
         </main>
       </div>
+      <MagicalCircle />
     </div>
   );
 };

@@ -1,0 +1,20 @@
+{
+  "imports": {
+    "@std/http": "jsr:@std/http",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js",
+    "openai": "npm:openai@4.24.1",
+    "@langchain/core/": "npm:@langchain/core/",
+    "@langchain/core/messages": "npm:@langchain/core/messages",
+    "@langchain/core/tools": "npm:@langchain/core/tools",
+    "@langchain/openai": "npm:@langchain/openai",
+    "@langchain/langgraph": "npm:@langchain/langgraph",
+    "@langchain/langgraph/prebuilt": "npm:@langchain/langgraph/prebuilt",
+    "@langchain/langgraph-checkpoint": "npm:@langchain/langgraph-checkpoint",
+    "langsmith": "npm:langsmith",
+    "zod": "npm:zod"
+  },
+  "permissions": {
+    "env": ["OPENAI_API_KEY", "LANGSMITH_ENDPOINT", "LANGSMITH_API_KEY", "LANGSMITH_PROJECT"],
+    "net": true
+  }
+}

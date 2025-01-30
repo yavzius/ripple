@@ -72,21 +72,6 @@ export type Database = {
           },
         ]
       }
-      app_settings: {
-        Row: {
-          key: string
-          value: string | null
-        }
-        Insert: {
-          key: string
-          value?: string | null
-        }
-        Update: {
-          key?: string
-          value?: string | null
-        }
-        Relationships: []
-      }
       channels: {
         Row: {
           account_id: string | null
@@ -251,6 +236,7 @@ export type Database = {
       }
       documents: {
         Row: {
+          account_id: string | null
           ai_metadata: Json | null
           author_id: string | null
           category: string | null
@@ -265,6 +251,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          account_id?: string | null
           ai_metadata?: Json | null
           author_id?: string | null
           category?: string | null
@@ -279,6 +266,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          account_id?: string | null
           ai_metadata?: Json | null
           author_id?: string | null
           category?: string | null
@@ -292,57 +280,15 @@ export type Database = {
           title?: string
           updated_at?: string | null
         }
-        Relationships: []
-      }
-      edge_function_calls: {
-        Row: {
-          called_at: string | null
-          http_status: number | null
-          id: number
-          message_id: string | null
-          response_body: string | null
-        }
-        Insert: {
-          called_at?: string | null
-          http_status?: number | null
-          id?: number
-          message_id?: string | null
-          response_body?: string | null
-        }
-        Update: {
-          called_at?: string | null
-          http_status?: number | null
-          id?: number
-          message_id?: string | null
-          response_body?: string | null
-        }
         Relationships: [
           {
-            foreignKeyName: "edge_function_calls_message_id_fkey"
-            columns: ["message_id"]
+            foreignKeyName: "documents_account_id_fkey"
+            columns: ["account_id"]
             isOneToOne: false
-            referencedRelation: "messages"
+            referencedRelation: "accounts"
             referencedColumns: ["id"]
           },
         ]
-      }
-      function_logs: {
-        Row: {
-          id: number
-          message_id: string | null
-          triggered_at: string | null
-        }
-        Insert: {
-          id?: number
-          message_id?: string | null
-          triggered_at?: string | null
-        }
-        Update: {
-          id?: number
-          message_id?: string | null
-          triggered_at?: string | null
-        }
-        Relationships: []
       }
       message_attachments: {
         Row: {
@@ -413,6 +359,45 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          account_id: string | null
+          company_id: string | null
+          created_at: string
+          id: string
+          status: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          status?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "customer_companies"
             referencedColumns: ["id"]
           },
         ]
@@ -659,6 +644,20 @@ export type Database = {
             }
             Returns: unknown
           }
+      match_documents: {
+        Args: {
+          query_embedding: string
+          similarity_threshold: number
+          match_count: number
+        }
+        Returns: {
+          id: string
+          content: string
+          title: string
+          category: string
+          similarity: number
+        }[]
+      }
       set_limit: {
         Args: {
           "": number
