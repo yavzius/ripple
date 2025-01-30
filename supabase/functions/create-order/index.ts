@@ -7,12 +7,12 @@ import { HumanMessage, ToolMessage } from "@langchain/core/messages";
 import { z } from "zod";
 import { Annotation, MessagesAnnotation, END, START, StateGraph, Command } from "@langchain/langgraph";
 import { corsHeaders } from '../_shared/cors.ts';
-import { Client } from "npm:langsmith"
 
 // Initialize Supabase client
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
 
 // Graph state annotation
 const GraphAnnotation = Annotation.Root({
@@ -101,6 +101,8 @@ const createOrder = tool(async (input, config) => {
 const tools = [findCustomerCompany, createOrder];
 const toolNode = new ToolNode(tools);
 
+
+
 const llm = new ChatOpenAI({
   apiKey: Deno.env.get('OPENAI_API_KEY'),
   modelName: "gpt-4o-mini",
@@ -118,7 +120,9 @@ function shouldContinue(state: typeof GraphAnnotation.State) {
 
 async function callModel(state: typeof GraphAnnotation.State) {
   const { messages } = state;
-  const response = await llm.invoke(messages);
+  const response = await llm.invoke(messages, {
+    runName: "AutoCRM",
+  });
   return { messages: response };
 }
 
