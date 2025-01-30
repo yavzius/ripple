@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Edit, Trash } from "lucide-react";
+import { Edit, Trash, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -22,12 +22,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { formatDate } from "@/lib/utils";
 import { useDeleteOrder, useUpdateOrderStatus } from "../hooks/use-orders";
 import {
   OrderDetailsProps,
   OrderStatus,
-  ORDER_STATUS,
   ORDER_STATUS_CONFIG,
 } from "../types";
 
@@ -41,9 +41,18 @@ export function OrderDetails({ order }: OrderDetailsProps) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-2xl font-bold">
-          Order #{order.order_number}
-        </CardTitle>
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/orders")}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <CardTitle className="text-2xl font-bold">
+            Order #{order.order_number}
+          </CardTitle>
+        </div>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -52,32 +61,18 @@ export function OrderDetails({ order }: OrderDetailsProps) {
           >
             <Edit className="h-4 w-4" />
           </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
+          <ConfirmDeleteDialog
+            trigger={
               <Button variant="outline" size="icon">
                 <Trash className="h-4 w-4" />
               </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete the order.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => {
-                    deleteOrder(order.id);
-                    navigate("/orders");
-                  }}
-                >
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+            }
+            description="This action cannot be undone. This will permanently delete the order."
+            onConfirm={() => {
+              deleteOrder(order.id);
+              navigate("/orders");
+            }}
+          />
         </div>
       </CardHeader>
       <CardContent className="pt-6">

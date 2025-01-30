@@ -76,6 +76,11 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }: SidebarProps) => {
       icon: Users,
     },
     {
+      title: "Products",
+      href: "/products",
+      icon: ShoppingCart,
+    },
+    {
       title: "Orders",
       href: "/orders",
       icon: ShoppingCart,

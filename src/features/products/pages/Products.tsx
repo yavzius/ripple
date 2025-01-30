@@ -13,17 +13,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { generateInitials, formatDate } from "@/lib/utils";
+import { generateInitials, formatDate, formatCurrency } from "@/lib/utils";
 import { useClipboard } from "@/hooks/use-clipboard";
-import { useOrders, useDeleteOrder, useUpdateOrderStatus } from "../hooks/use-orders";
+import { useProducts, useDeleteProduct, useUpdateProductStatus } from "../hooks/use-products";
 import {
-  OrderWithCompany,
-  OrderStatus,
-  ORDER_STATUS,
-  ORDER_STATUS_CONFIG,
+  ProductWithCompany,
+  ProductStatus,
+  PRODUCT_STATUS,
+  PRODUCT_STATUS_CONFIG,
 } from "../types";
 
-const columns: ColumnDef<OrderWithCompany>[] = [
+const columns: ColumnDef<ProductWithCompany>[] = [
   {
     id: "select",
     header: ({ table }) => (
@@ -45,43 +45,25 @@ const columns: ColumnDef<OrderWithCompany>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "order_number",
+    accessorKey: "name",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Order #" />
+      <DataTableColumnHeader column={column} title="Name" />
     ),
     cell: ({ row }) => {
-      const { copyToClipboard } = useClipboard();
       return (
         <div className="flex items-center gap-2">
-          <span className="font-medium">#{row.getValue("order_number")}</span>
-          
+          <span className="font-medium">{row.getValue("name")}</span>
         </div>
       );
     },
   },
   {
-    accessorKey: "company",
+    accessorKey: "price",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Company" />
+      <DataTableColumnHeader column={column} title="Price" />
     ),
     cell: ({ row }) => {
-      const company = row.original.company;
-      if (!company) return "-";
-      return (
-        <div className="flex items-center gap-2">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback>
-              {generateInitials(company.name)}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col">
-            <span className="text-sm font-medium">{company.name}</span>
-            {company.domain && (
-              <span className="text-xs text-muted-foreground">{company.domain}</span>
-            )}
-          </div>
-        </div>
-      );
+      return formatCurrency(row.getValue("price"));
     },
   },
   {
@@ -90,8 +72,8 @@ const columns: ColumnDef<OrderWithCompany>[] = [
       <DataTableColumnHeader column={column} title="Status" />
     ),
     cell: ({ row }) => {
-      const status = row.getValue("status") as OrderStatus;
-      const statusConfig = ORDER_STATUS_CONFIG[status] || ORDER_STATUS_CONFIG.pending;
+      const status = row.getValue("status") as ProductStatus;
+      const statusConfig = PRODUCT_STATUS_CONFIG[status] || PRODUCT_STATUS_CONFIG[PRODUCT_STATUS.DRAFT];
       return (
         <StatusBadge
           status={statusConfig.label}
@@ -112,9 +94,9 @@ const columns: ColumnDef<OrderWithCompany>[] = [
   {
     id: "actions",
     cell: ({ row }) => {
-      const order = row.original;
-      const { mutate: deleteOrder } = useDeleteOrder();
-      const { mutate: updateStatus } = useUpdateOrderStatus();
+      const product = row.original;
+      const { mutate: deleteProduct } = useDeleteProduct();
+      const { mutate: updateStatus } = useUpdateProductStatus();
       const { copyToClipboard } = useClipboard();
       
       return (
@@ -127,62 +109,62 @@ const columns: ColumnDef<OrderWithCompany>[] = [
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem 
-              onClick={() => copyToClipboard(order.id, "Order ID copied to clipboard")}
+              onClick={() => copyToClipboard(product.id, "Product ID copied to clipboard")}
             >
-              Copy order ID
+              Copy product ID
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link to={`/orders/${order.id}`}>View details</Link>
+              <Link to={`/products/${product.id}`}>View details</Link>
             </DropdownMenuItem>
-            {Object.values(ORDER_STATUS_CONFIG).map((config) => (
+            {Object.values(PRODUCT_STATUS_CONFIG).map((config) => (
               <DropdownMenuItem
                 key={config.value}
-                onClick={() => updateStatus({ orderId: order.id, status: config.value })}
-                disabled={order.status === config.value}
+                onClick={() => updateStatus({ productId: product.id, status: config.value })}
+                disabled={product.status === config.value}
               >
                 Mark as {config.label.toLowerCase()}
               </DropdownMenuItem>
             ))}
             <DropdownMenuItem
               className="text-destructive"
-              onClick={() => deleteOrder(order.id)}
+              onClick={() => deleteProduct(product.id)}
             >
-              Delete order
+              Delete product
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );
-    },
+    }
   },
 ];
 
-export default function Orders() {
+export default function Products() {
   const navigate = useNavigate();
-  const { data: orders, isLoading } = useOrders();
+  const { data: products, isLoading } = useProducts();
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h2 className="text-2xl font-semibold tracking-tight">Orders</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">Products</h2>
           <p className="text-sm text-muted-foreground">
-            Manage and track your customer orders
+            Manage and track your product catalog
           </p>
         </div>
         <Button asChild>
-          <Link to="/orders/new">
-            <Plus className="mr-2 h-4 w-4" /> New Order
+          <Link to="/products/new">
+            <Plus className="mr-2 h-4 w-4" /> New Product
           </Link>
         </Button>
       </div>
 
       <DataTable
         columns={columns}
-        data={orders || []}
+        data={products || []}
         isLoading={isLoading}
-        filterColumn="company.name"
-        filterPlaceholder="Filter orders..."
-        onRowClick={(row) => navigate(`/orders/${row.id}`)}
+        filterColumn="name"
+        filterPlaceholder="Filter products..."
+        onRowClick={(row) => navigate(`/products/${row.id}`)}
       />
     </div>
   );

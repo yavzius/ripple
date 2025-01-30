@@ -28,6 +28,10 @@ import Orders from "@/features/orders/pages/Orders";
 import CreateOrder from "@/features/orders/pages/CreateOrder";
 import EditOrder from "@/features/orders/pages/EditOrder";
 import OrderView from "@/features/orders/pages/OrderView";
+import Products from "@/features/products/pages/Products";
+import CreateProduct from "@/features/products/pages/CreateProduct";
+import EditProduct from "@/features/products/pages/EditProduct";
+import ProductView from "@/features/products/pages/ProductView";
 
 const InitialLoadingState = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -108,6 +112,10 @@ function App() {
               <Route path="/orders/new" element={<CreateOrder />} />
               <Route path="/orders/:orderId" element={<OrderView />} />
               <Route path="/orders/:orderId/edit" element={<EditOrder />} />
+              <Route path="/products" element={<Products />} />
+              <Route path="/products/new" element={<CreateProduct />} />
+              <Route path="/products/:id" element={<ProductView />} />
+              <Route path="/products/:id/edit" element={<EditProduct />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           ) : (
