@@ -236,19 +236,63 @@ Deno.serve(async (req) => {
       );
     }
 
-    const result = await app.invoke({ 
+    const authHeader = req.headers.get('Authorization')!
+    const token = authHeader.replace('Bearer ', '')
+    const { data } = await supabase.auth.getUser(token)
+    const user = data.user
+
+    if (!user) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'User not found' 
+        }),
+        { status: 401 }
+      );
+    }
+
+    const input = {
       messages: [
         new HumanMessage({
-          content: `Process this order request: ${prompt} for account: ${accountId} and return the order number`
+          content: `You are an assistant that helps with CRM actions: 
+          Here is the request: ${prompt} 
+          Here is the accountID: ${accountId}
+          `
         })
       ]
-    });
+    }
+
+    for await (
+      const event of await app.stream(input, {
+        streamMode: "updates",
+      })
+    ) {
+      let log = '';
+      if (event?.agent) {
+        const toolCall = event?.agent?.messages?.tool_calls[0]?.name || null
+        if (toolCall === 'find_customer_company') {
+          log = "Looking up the customer"
+        } else if (toolCall === 'find_products') {
+          log = "Looking up the products"
+        } else if (toolCall === 'create_order') {
+          log = "Creating the order"
+        }
+        if (event?.agent?.messages?.content) {
+          log += `${event.agent.messages.content}`
+        }
+      }
+      if (log) {
+        console.log(log)
+        await supabase.from('assistant_updates').insert({
+          user_id: user.id,
+          content: log,
+        });
+      }
+    }
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: result.messages[result.messages.length - 1].content,
-        orderNumber: String(result.messages[result.messages.length - 1].content).match(/#(\d+)/)?.[1],
       }),
       { 
         status: 200,

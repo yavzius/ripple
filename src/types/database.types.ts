@@ -72,6 +72,35 @@ export type Database = {
           },
         ]
       }
+      assistant_updates: {
+        Row: {
+          content: string | null
+          created_at: string
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assistant_updates_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       channels: {
         Row: {
           account_id: string | null
