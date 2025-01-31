@@ -12,16 +12,11 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-
 // Graph state annotation
 const GraphAnnotation = Annotation.Root({
   ...MessagesAnnotation.spec,
-  accountId: Annotation<string>(),
-  customerCompanyId: Annotation<string>(),
-  orderId: Annotation<string>(),
 });
 
-type State = typeof GraphAnnotation.State;
 
 // Tool to find customer company
 const findCustomerCompany = tool(async (input, config) => {
@@ -31,37 +26,93 @@ const findCustomerCompany = tool(async (input, config) => {
     .ilike('name', `%${input.customerCompanyName}%`)
     .limit(1);
 
-  if (error) throw new Error(`Error fetching accounts: ${error.message}`);
+  if (error) throw new Error(`Error fetching customer companies: ${error.message}`);
   if (!matches?.length) return { 
     messages: [{ 
       type: 'tool', 
-      content: `No account found matching "${input.customerCompanyName}"` 
+      content: `No customer company found matching "${input.customerCompanyName}"` 
     }]
   };
-
-  return new Command({
-    update: {
-      customerCompanyId: matches[0].id,
-      messages: [
-        new ToolMessage({
-          tool_call_id: config.toolCall.id,
-          content: `Customer company found with ID: ${matches[0].id} Now create an order`
-        })
-      ]
-    },
-  });
+  return {
+    customerCompanyId: matches[0].id,
+  }
 }, {
   name: "find_customer_company",
-  description: "Find a customer company by name using fuzzy matching",
+  description: "Find a customer company ID by name using fuzzy matching",
   schema: z.object({
     customerCompanyName: z.string().describe("The name of the customer company to find"),
   }),
 });
 
+const findProducts = tool(async (input, config) => {
+  const { accountId, productRequests } = input;
+  
+  if (!accountId) throw new Error("Account ID is missing");
+
+  const foundProducts: Array<{ id: string; quantity: number }> = [];
+  const notFoundProducts: string[] = [];
+
+  const { data: allProducts, error: productsError } = await supabase
+    .from('products')
+    .select('id, name')
+    .eq('account_id', accountId);
+
+  if (productsError) {
+    throw new Error(`Error fetching products: ${productsError.message}`);
+  }
+
+  // Create a map for faster lookups
+  const productMap = new Map(
+    allProducts?.map(p => [p.name.toLowerCase(), p]) || []
+  );
+
+  // Process each product request
+  for (const request of productRequests) {
+    const searchName = request.name.toLowerCase();
+    
+    // Try exact match first
+    let match = productMap.get(searchName);
+
+    // If no exact match, try fuzzy match
+    if (!match && allProducts) {
+      match = allProducts.find(p => 
+        p.name.toLowerCase().includes(searchName) || 
+        searchName.includes(p.name.toLowerCase())
+      );
+    }
+
+    if (match) {
+      foundProducts.push({
+        id: match.id,
+        quantity: request.quantity || 1
+      });
+    } else {
+      notFoundProducts.push(request.name);
+    }
+  }
+
+  return {
+    productIds: foundProducts,
+  };
+}, {
+  name: "find_products",
+  description: "Find products by name and return their exact IDs and quantities. Once products are found, their IDs must be used exactly as provided.",
+  schema: z.object({
+    accountId: z.string().describe("The ID of the account to search products in"),
+    productRequests: z.array(
+      z.object({
+        name: z.string().describe("The name of the product to find"),
+        quantity: z.number().optional().describe("The quantity of the product (defaults to 1)")
+      })
+    ).describe("Array of product requests with names and optional quantities"),
+  }),
+});
+
 // Tool to create order
 const createOrder = tool(async (input, config) => {
-  const { customerCompanyId, accountId } = input;
+  const { customerCompanyId, accountId, productIds } = input;
   if (!accountId) throw new Error("Account ID is missing");
+  if (!productIds?.length) throw new Error("No products selected");
   
   const { data: order, error } = await supabase
     .from('orders')
@@ -73,7 +124,25 @@ const createOrder = tool(async (input, config) => {
     .select()
     .single();
 
-  if (error) throw new Error(`Error creating order: ${error.message}`);
+  if (error) {
+    throw new Error(`Error creating order: ${error.message}`);
+  }
+
+  // Create order items with quantities
+  const orderItems = productIds.map(product => ({
+    order_id: order.id,
+    product_id: product.id,
+    quantity: product.quantity,
+  }));
+
+  const { data: createdItems, error: itemsError } = await supabase
+    .from('order_items')
+    .insert(orderItems)
+    .select();
+
+  if (itemsError) {
+    throw new Error(`Error creating order items: ${itemsError.message}`);
+  }
   
   return new Command({
     update: {
@@ -81,26 +150,30 @@ const createOrder = tool(async (input, config) => {
       messages: [
         new ToolMessage({
           tool_call_id: config.toolCall.id,
-          content: `Order #${order.order_number} created successfully (ID: ${order.id}). TERMINATE.`
+          content: `Successfully created Order #${order.order_number} (ID: ${order.id}) with the following items: ${orderItems.map(item => `Product ID: ${item.product_id} (Quantity: ${item.quantity})`).join(', ')}. TERMINATE.`
         })
       ]
     },
   });
 }, {
   name: "create_order",
-  description: "Create a new order for an account",
+  description: "Create a new order using the exact product IDs that were previously found. Do not modify or replace the product IDs.",
   schema: z.object({
     customerCompanyId: z.string().describe("The ID of the customer company to create the order for"),
     accountId: z.string().describe("The ID of the account to create the order for"),
+    productIds: z.array(
+      z.object({
+        id: z.string().describe("The ID of the product"),
+        quantity: z.number().describe("The quantity of the product")
+      })
+    ).describe("Array of product IDs and their quantities"),
   }),
   returnDirect: false
 });
 
 // Initialize tools and LLM
-const tools = [findCustomerCompany, createOrder];
+const tools = [findCustomerCompany, findProducts, createOrder];
 const toolNode = new ToolNode(tools);
-
-
 
 const llm = new ChatOpenAI({
   apiKey: Deno.env.get('OPENAI_API_KEY'),
@@ -109,19 +182,21 @@ const llm = new ChatOpenAI({
 
 // Graph control flow
 function shouldContinue(state: typeof GraphAnnotation.State) {
-  const { messages } = state;
-  const lastMessage = messages[messages.length - 1];
+  const lastMessage = state.messages[state.messages.length - 1];
+
   if ("tool_calls" in lastMessage && Array.isArray(lastMessage.tool_calls) && lastMessage.tool_calls?.length) {
     return "tools";
   }
+
   return END;
 }
 
 async function callModel(state: typeof GraphAnnotation.State) {
-  const { messages } = state;
+  const { messages } = state;   
   const response = await llm.invoke(messages, {
     runName: "AutoCRM",
   });
+  
   return { messages: response };
 }
 
@@ -139,11 +214,9 @@ const app = graph.compile();
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { 
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json'
-      }
+    return new Response(null, { 
+      status: 204,
+      headers: corsHeaders
     });
   }
 
@@ -152,7 +225,10 @@ Deno.serve(async (req) => {
 
     if (!prompt || !accountId) {
       return new Response(
-        JSON.stringify({ error: 'Prompt and accountId are required' }),
+        JSON.stringify({ 
+          success: false, 
+          error: 'Prompt and accountId are required' 
+        }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -160,17 +236,17 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Run the graph with the input
     const result = await app.invoke({ 
-      messages: [new HumanMessage(prompt + ` and return the order ID. The account this order should be created is: ${accountId}`)],
-      accountId // Add accountId to the initial state
+      messages: [
+        new HumanMessage({
+          content: `Process this order request: ${prompt} for account: ${accountId} and return the order number`
+        })
+      ]
     });
 
     return new Response(
       JSON.stringify({
         success: true,
-        orderId: result.orderId,
-        customerCompanyId: result.customerCompanyId,
         message: result.messages[result.messages.length - 1].content,
         orderNumber: String(result.messages[result.messages.length - 1].content).match(/#(\d+)/)?.[1],
       }),
@@ -181,10 +257,12 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
+    console.error('Error in assistant function:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: (error as Error).message 
+        error: error instanceof Error ? error.message : 'An unexpected error occurred',
+        details: error instanceof Error ? error.stack : undefined,
       }),
       { 
         status: 500, 
