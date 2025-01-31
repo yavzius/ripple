@@ -7,6 +7,7 @@ import { z } from "zod";
 import { Annotation, MessagesAnnotation, END, START, StateGraph, Command } from "@langchain/langgraph";
 import { corsHeaders } from '../_shared/cors.ts';
 
+
 // Initialize Supabase client
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -19,7 +20,7 @@ const GraphAnnotation = Annotation.Root({
 
 
 // Tool to find customer company
-const findCustomerCompany = tool(async (input, config) => {
+const findCustomerCompanyByName = tool(async (input, config) => {
   const { data: matches, error } = await supabase
     .from('customer_companies')
     .select('id, name')
@@ -37,12 +38,30 @@ const findCustomerCompany = tool(async (input, config) => {
     customerCompanyId: matches[0].id,
   }
 }, {
-  name: "find_customer_company",
+  name: "find_customer_company_by_name",
   description: "Find a customer company ID by name using fuzzy matching",
   schema: z.object({
     customerCompanyName: z.string().describe("The name of the customer company to find"),
   }),
 });
+
+const getAllCustomerCompanies = tool(async (input, config) => {
+  const { accountId } = input;
+  if (!accountId) throw new Error("Account ID is missing");
+
+  const { data: customerCompanies, error } = await supabase
+    .from('customer_companies')
+    .select('id, name')
+    .eq('account_id', accountId);
+
+  return { customerCompanies };
+}, {
+  name: "get_all_customer_companies",
+  description: "Get all customer companies for an account by account ID",
+  schema: z.object({
+    accountId: z.string().describe("The ID of the account to search customer companies in"),
+  }),
+})
 
 
 const getStats = tool(async (input, config) => {
@@ -98,8 +117,28 @@ const getStats = tool(async (input, config) => {
  }),
 })
 
+const getAllProducts = tool(async (input, config) => {
+  const { accountId } = input;
+  if (!accountId) throw new Error("Account ID is missing");
 
-const findProducts = tool(async (input, config) => {
+  const { data: products, error } = await supabase
+    .from('products')
+    .select('id, name')
+    .eq('account_id', accountId);
+
+  return { products };
+}, {
+  name: "get_all_products",
+  description: "Get all products for an account by account ID",
+  schema: z.object({
+    accountId: z.string().describe("The ID of the account to search products in"),
+  }),
+})
+
+
+
+
+const findProductByName = tool(async (input, config) => {
   const { accountId, productRequests } = input;
   
   if (!accountId) throw new Error("Account ID is missing");
@@ -150,8 +189,8 @@ const findProducts = tool(async (input, config) => {
     productIds: foundProducts,
   };
 }, {
-  name: "find_products",
-  description: "Find products by name and return their exact IDs and quantities. Once products are found, their IDs must be used exactly as provided.",
+  name: "find_product_by_name",
+  description: "Find a product by it's name and return their exact IDs and quantities. Once products are found, their IDs must be used exactly as provided.",
   schema: z.object({
     accountId: z.string().describe("The ID of the account to search products in"),
     productRequests: z.array(
@@ -226,7 +265,7 @@ const createOrder = tool(async (input, config) => {
 });
 
 // Initialize tools and LLM
-const tools = [findCustomerCompany, findProducts, createOrder, getStats];
+const tools = [findCustomerCompanyByName, findProductByName, createOrder, getStats, getAllProducts, getAllCustomerCompanies];
 const toolNode = new ToolNode(tools);
 
 const llm = new ChatOpenAI({
@@ -326,14 +365,18 @@ Deno.serve(async (req) => {
       let log = '';
       if (event?.agent) {
         const toolCall = event?.agent?.messages?.tool_calls[0]?.name || null
-        if (toolCall === 'find_customer_company') {
+        if (toolCall === 'find_customer_company_by_name') {
           log = "Finding the customer"
-        } else if (toolCall === 'find_products') {
+        } else if (toolCall === 'find_product_by_name') {
           log = "Pulling your products"
         } else if (toolCall === 'create_order') {
           log = "Creating the order"
         } else if (toolCall === 'get_stats') {
           log = "Crunching the numbers"
+        } else if (toolCall === 'get_all_products') {
+          log = "Pulling your products"
+        } else if (toolCall === 'get_all_customer_companies') {
+          log = "Pulling your customers"
         }
         if (event?.agent?.messages?.content) {
           log = `${event.agent.messages.content}`
