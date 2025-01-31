@@ -46,9 +46,8 @@ const findCustomerCompany = tool(async (input, config) => {
 
 
 const getStats = tool(async (input, config) => {
-  const { accountId, customerCompanyId, fromDate, toDate } = input;
+  const { accountId, customerCompanyId } = input;
 
-  console.log(accountId, customerCompanyId, fromDate, toDate)
   if (!accountId) throw new Error("Account ID is missing");
 
   const { data: orders, error } = await supabase
@@ -56,8 +55,6 @@ const getStats = tool(async (input, config) => {
     .select('id, order_number, order_items(id, quantity, products(name, price))')
     .eq('account_id', accountId)
     .eq('company_id', customerCompanyId)
-    .gte('created_at', fromDate)
-    .lte('created_at', toDate);
 
   if (error) throw new Error(`Error fetching orders: ${error.message}`);
 
@@ -98,10 +95,9 @@ const getStats = tool(async (input, config) => {
   schema: z.object({
     accountId: z.string().describe("The ID of the account to search orders in"),
     customerCompanyId: z.string().describe("The ID of the customer company to search orders in"),
-    fromDate: z.date().describe("The start date of the time period to search orders in"),
-    toDate: z.date().describe("The end date of the time period to search orders in"),
-  }),
+ }),
 })
+
 
 const findProducts = tool(async (input, config) => {
   const { accountId, productRequests } = input;
@@ -205,7 +201,6 @@ const createOrder = tool(async (input, config) => {
   
   return new Command({
     update: {
-      orderId: order.id,
       messages: [
         new ToolMessage({
           tool_call_id: config.toolCall.id,
@@ -322,6 +317,7 @@ Deno.serve(async (req) => {
       ]
     }
 
+
     for await (
       const event of await app.stream(input, {
         streamMode: "updates",
@@ -331,14 +327,16 @@ Deno.serve(async (req) => {
       if (event?.agent) {
         const toolCall = event?.agent?.messages?.tool_calls[0]?.name || null
         if (toolCall === 'find_customer_company') {
-          log = "Looking up the customer"
+          log = "Finding the customer"
         } else if (toolCall === 'find_products') {
-          log = "Looking up the products"
+          log = "Pulling your products"
         } else if (toolCall === 'create_order') {
           log = "Creating the order"
+        } else if (toolCall === 'get_stats') {
+          log = "Crunching the numbers"
         }
         if (event?.agent?.messages?.content) {
-          log += `${event.agent.messages.content}`
+          log = `${event.agent.messages.content}`
         }
       }
       if (log) {

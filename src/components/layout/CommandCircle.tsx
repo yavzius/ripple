@@ -1,13 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { cn } from '@/lib/utils';
-import { useWorkspace } from '@/hooks/use-workspace';
-import { useAssistant } from '@/features/assistant/hooks/useAssistant';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import ReactMarkdown from 'react-markdown';
 import { Loader2 } from 'lucide-react';
+import { useCommandSubmission } from '@/features/assistant/hooks/useCommandSubmission';
+import { useAssistantUpdates } from '@/features/assistant/hooks/useAssistantUpdates';
 
 interface CommandCircleProps {
   className?: string;
@@ -15,75 +13,10 @@ interface CommandCircleProps {
 
 export function CommandCircle({ className }: CommandCircleProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [prompt, setPrompt] = useState('');
-  const sessionStartTime = useRef(new Date());
-  const { workspace } = useWorkspace();
-  const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { prompt, setPrompt, handleSubmitCommand, isSubmitting } = useCommandSubmission();
+  const { latestUpdate } = useAssistantUpdates(user?.id);
 
-  const assistantMutation = useAssistant();
-
-  // Fetch the latest assistant update
-  const { data: latestUpdate } = useQuery({
-    queryKey: ['assistant-updates', user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      
-      const { data, error } = await supabase
-        .from('assistant_updates')
-        .select('*')
-        .eq('user_id', user.id)
-        .gt('created_at', sessionStartTime.current.toISOString())
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (error && error.code !== 'PGRST116') return null; // PGRST116 is the "no rows returned" error
-      return data;
-    },
-    enabled: !!user
-  });
-
-  // Subscribe to real-time updates
-  useEffect(() => {
-    if (!user) return;
-
-    const channel = supabase
-      .channel('assistant-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'assistant_updates',
-          filter: `user_id=eq.${user.id}`
-        },
-        (payload) => {
-          // Invalidate the query to refetch the latest update
-          void queryClient.invalidateQueries({ queryKey: ['assistant-updates', user.id] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [user?.id]);
-
-  const handleCreateOrder = async (prompt: string) => {
-    if (!prompt.trim()) {
-      return;
-    }
-    try {
-      await assistantMutation.mutateAsync({
-        prompt,
-        accountId: workspace.id
-      });
-      setPrompt('');
-    } catch (error) {
-      console.error('Failed to create order:', error);
-    }
-  };
   return (
     <div className={cn("fixed bottom-6 right-6 z-50", className)}>
       <Dialog.Root open={isOpen} onOpenChange={setIsOpen}>
@@ -127,17 +60,17 @@ placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-pri
                 placeholder="What would you like me to do?"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                disabled={assistantMutation.isPending}
+                disabled={isSubmitting}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    handleCreateOrder(prompt);
+                    handleSubmitCommand(prompt);
                   }
                 }}
               />
               {latestUpdate && (
                 <div className="flex items-start gap-2">
-                  {assistantMutation.isPending && (
+                  {isSubmitting && (
                     <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mt-1 shrink-0" />
                   )}
                   <div className="text-sm text-muted-foreground prose prose-sm prose-invert max-w-none">
@@ -153,14 +86,14 @@ focus:ring-primary focus:ring-offset-2">
                   Cancel
                 </Dialog.Close>
                 <button
-                  onClick={() => handleCreateOrder(prompt)}
-                  disabled={assistantMutation.isPending}
+                  onClick={() => handleSubmitCommand(prompt)}
+                  disabled={isSubmitting}
                   className="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm
 font-medium bg-primary text-primary-foreground hover:bg-primary/90
 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2
 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {assistantMutation.isPending ? 'Loading...' : 'Submit'}
+                  {isSubmitting ? 'Loading...' : 'Submit'}
                 </button>
               </div>
             </div>
