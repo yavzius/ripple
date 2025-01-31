@@ -44,6 +44,65 @@ const findCustomerCompany = tool(async (input, config) => {
   }),
 });
 
+
+const getStats = tool(async (input, config) => {
+  const { accountId, customerCompanyId, fromDate, toDate } = input;
+
+  console.log(accountId, customerCompanyId, fromDate, toDate)
+  if (!accountId) throw new Error("Account ID is missing");
+
+  const { data: orders, error } = await supabase
+    .from('orders')
+    .select('id, order_number, order_items(id, quantity, products(name, price))')
+    .eq('account_id', accountId)
+    .eq('company_id', customerCompanyId)
+    .gte('created_at', fromDate)
+    .lte('created_at', toDate);
+
+  if (error) throw new Error(`Error fetching orders: ${error.message}`);
+
+  console.log(orders)
+
+    // calculate the total revenue
+    const totalRevenue = orders?.reduce((acc, order) => {
+      return acc + order.order_items.reduce((itemAcc, item) => {
+        return itemAcc + (item.quantity * item.products?.price);
+      }, 0);
+    }, 0);
+
+    // calculate the total number of orders
+    const totalOrders = orders?.length;
+
+    // calculate the total number of items
+    const productStats = orders?.reduce((acc, order) => {
+      order.order_items.forEach(item => {
+        const productName = item.products?.name;
+        if (!productName) return;
+        
+        if (!acc[productName]) {
+          acc[productName] = {
+            quantity: 0,
+            totalSpent: 0
+          };
+        }
+        acc[productName].quantity += item.quantity;
+        acc[productName].totalSpent += item.quantity * (item.products?.price || 0);
+      });
+      return acc;
+    }, {} as Record<string, {quantity: number, totalSpent: number}>);
+
+  return { totalRevenue, totalOrders, productStats };
+}, {
+  name: "get_stats",
+  description: "Get stats for an account by account ID for a time period. Total revenue, total orders, and product stats.",
+  schema: z.object({
+    accountId: z.string().describe("The ID of the account to search orders in"),
+    customerCompanyId: z.string().describe("The ID of the customer company to search orders in"),
+    fromDate: z.date().describe("The start date of the time period to search orders in"),
+    toDate: z.date().describe("The end date of the time period to search orders in"),
+  }),
+})
+
 const findProducts = tool(async (input, config) => {
   const { accountId, productRequests } = input;
   
@@ -172,7 +231,7 @@ const createOrder = tool(async (input, config) => {
 });
 
 // Initialize tools and LLM
-const tools = [findCustomerCompany, findProducts, createOrder];
+const tools = [findCustomerCompany, findProducts, createOrder, getStats];
 const toolNode = new ToolNode(tools);
 
 const llm = new ChatOpenAI({
@@ -257,6 +316,7 @@ Deno.serve(async (req) => {
           content: `You are an assistant that helps with CRM actions: 
           Here is the request: ${prompt} 
           Here is the accountID: ${accountId}
+          Today is ${new Date().toISOString().split('T')[0]}
           `
         })
       ]
